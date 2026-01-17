@@ -9,6 +9,7 @@
 # @Description  :
 
 from pathlib import Path
+import os
 from lautpy.pipe import *
 
 __version__ = Path(get_resolve_path('./data/VERSION', __file__)).read_text()
