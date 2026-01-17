@@ -8,9 +8,14 @@
 
 name: Upload Python Package
 
+# on:
+#   release:
+#     types: [published]
+
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'v*'          # 匹配 v1.0, v2.3.4, v0.1.0-beta 等
 
 permissions:
   contents: read
@@ -51,7 +56,7 @@ jobs:
     environment:
       name: pypi
       # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      url: https://pypi.org/lautpy
+      # url: https://pypi.org/lautpy
       #
       # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
       # ALTERNATIVE: exactly, uncomment the following line instead:
