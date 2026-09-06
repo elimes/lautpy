@@ -35,7 +35,7 @@ lautpy/
 │       ├── tools.py            # 无密钥工具：shorten_url / data2qrcodeurl / download / is_open
 │       └── niutrans.py         # 翻译 API（示范新 API 的接入模式）
 ├── tests/                      # pytest 测试（117 用例，可选依赖缺失自动 skip）
-├── docs/                       # 本文档 + 使用指南
+├── docs/                       # architecture（本页）/ usage / agent / ml
 ├── CHANGELOG.md                # 版本变更记录（Unreleased 段随发版归档）
 ├── .data/VERSION               # 唯一版本源（pyproject 动态读取）
 ├── .github/workflows/

@@ -175,6 +175,8 @@ resp = client.chat.completions.create(
 
 ## 8. Agent 构建 `lautpy.agent`
 
+> 📖 **完整参考（参数全表 / Harness 守卫详解 / 常见配方 / FAQ）见 [agent.md](agent.md)**
+
 双轨设计：**原生引擎**只用 OpenAI 兼容 API（`pip install "lautpy[llm]"）；；
 **LangChain 引擎**包装 langchain 1.x `create_agent`（`pip install "lautpy[agent]"`，Python 3.10+）。
 两侧共用同一套工具定义。
@@ -247,6 +249,8 @@ answer = run_agent(task, tools + files + [researcher], service="moonshot")
 信息回传给模型自行调整，而不是中断；`max_turns` 防死循环。
 
 ## 9. 机器学习辅助 `lautpy.ml`
+
+> 📖 **完整参考（公式与解读惯例 / 各函数详解 / 设计边界）见 [ml.md](ml.md)**
 
 定位是"胶水层"：只补 sklearn 没有直接给的日常刚需。需要 `pip install "lautpy[ml]"`（scikit-learn/pandas）。
 
