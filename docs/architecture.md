@@ -18,6 +18,13 @@ lautpy/
 │   ├── decorators.py           # retrying / timeout / background_task / ratelimit / ...
 │   ├── notice.py               # 企微/飞书群机器人通知（webhook 走环境变量）
 │   ├── llm.py                  # OpenAI 兼容客户端工厂（openai 可选）
+│   ├── ml/                     # 机器学习辅助层（惰性加载，需 ml extra）
+│   │   ├── seed.py             # set_seed：random/numpy/torch 一键固定
+│   │   ├── metrics.py          # best_threshold / ks_stat / psi / report_lite
+│   │   ├── binning.py          # 等频/等距分箱 + WOE/IV + woe_transform
+│   │   ├── benchmark.py        # xbenchmark：多模型并行训练对比
+│   │   ├── split.py            # xsplit（train/val/test 分层）/ xy
+│   │   └── model_io.py         # model_dump/load：带元数据的模型存取
 │   ├── agent/                  # Agent 构建层（双轨引擎 + 统一工具定义，见"七"）
 │   │   ├── __init__.py         # run_agent（原生循环）/ build_agent（langchain）
 │   │   ├── tools.py            # @tool：普通函数 → OpenAI schema / langchain 工具
@@ -27,7 +34,7 @@ lautpy/
 │       ├── client.py           # 基建：get_api_key（环境变量密钥）+ request（超时/重试）
 │       ├── tools.py            # 无密钥工具：shorten_url / data2qrcodeurl / download / is_open
 │       └── niutrans.py         # 翻译 API（示范新 API 的接入模式）
-├── tests/                      # pytest 测试（87 用例，可选依赖缺失自动 skip）
+├── tests/                      # pytest 测试（106 用例，可选依赖缺失自动 skip）
 ├── docs/                       # 本文档 + 使用指南
 ├── CHANGELOG.md                # 版本变更记录（Unreleased 段随发版归档）
 ├── .data/VERSION               # 唯一版本源（pyproject 动态读取）
@@ -49,6 +56,8 @@ dates paths hashing decorators（tenacity 可选） notice ──→ apis.client
                                                      ↑
                                      agent（tools 零依赖；mini 走 llm；
                                      langchain_agent 走 langchain 1.x，需 agent extra）
+                                     ml（惰性；seed 零依赖；metrics/binning 走 numpy；
+                                     benchmark/split 走 sklearn+pandas）
 ```
 
 - **零强制依赖**：`dependencies = []`。requests 属 `http` extra，`apis`/`notice`

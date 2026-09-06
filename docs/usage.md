@@ -225,7 +225,42 @@ chat(agent, "北京明天适合爬山吗？")     # 便捷单轮封装
 （模型请求工具 → 执行并回填 → 直到给出最终回答），工具抛错会把错误
 信息回传给模型自行调整，而不是中断；`max_turns` 防死循环。
 
-## 9. Web/API 工具 `lautpy.apis`
+## 9. 机器学习辅助 `lautpy.ml`
+
+定位是"胶水层"：只补 sklearn 没有直接给的日常刚需。需要 `pip install "lautpy[ml]"`（scikit-learn/pandas）。
+
+```python
+from lautpy import ml
+
+# 可复现性：一键固定 random/numpy/torch 种子
+ml.set_seed(2026)
+
+# 数据划分（按数组分组返回，分层抽样两刀都保持分布）
+X_tr, X_val, X_te, y_tr, y_val, y_te = ml.xsplit(
+    X, y, test_size=0.2, val_size=0.1, stratify=y)
+X, y = ml.xy(df, "label")                    # DataFrame → X, y
+
+# 评估补集
+thr, f1 = ml.best_threshold(y_val, proba)    # 最优阈值搜索
+ks = ml.ks_stat(y_test, proba)               # KS 值
+stability = ml.psi(train_score, online_score) # 分布漂移 PSI
+r = ml.report_lite(y_test, y_score=proba)    # accuracy/precision/recall/f1/auc
+
+# 分箱 + WOE/IV（评分卡/可解释建模）
+bins = ml.woe_bins(income, default_flag, n_bins=5)
+print(ml.iv_summary(income, default_flag))   # 特征预测力
+encoded = ml.woe_transform(income_new, bins)
+
+# 多模型一键对比（joblib 并行，输出 DataFrame）
+df = ml.xbenchmark([("lr", LogisticRegression()), ("rf", RandomForestClassifier())],
+                   X_tr, y_tr, X_te, y_te)
+
+# 模型存取（带元数据）
+ml.model_dump(model, "model.pkl", meta={"features": cols})
+model, meta = ml.model_load("model.pkl", with_meta=True)
+```
+
+## 10. Web/API 工具 `lautpy.apis`
 
 ```python
 from lautpy.apis import get_api_key, request, MissingAPIKeyError

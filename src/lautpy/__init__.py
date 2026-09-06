@@ -12,8 +12,8 @@
 from . import agent, dates, decorators, hashing, llm, paths  # noqa: F401
 from .pipe import *  # noqa: F401,F403
 
-# 惰性子模块（PEP 562）：import lautpy 时不加载 requests，首次访问才导入
-_LAZY_SUBMODULES = frozenset({"apis", "notice"})
+# 惰性子模块（PEP 562）：import lautpy 时不加载任何第三方包，首次访问才导入
+_LAZY_SUBMODULES = frozenset({"apis", "ml", "notice"})
 
 
 def __getattr__(name: str):

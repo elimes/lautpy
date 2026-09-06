@@ -5,6 +5,11 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 ## [Unreleased]
 
 ### Added
+- `lautpy.ml`: machine-learning glue layer — `set_seed`, `best_threshold` /
+  `ks_stat` / `psi` / `report_lite` (numpy-only metric gaps), quantile/uniform
+  binning with WOE/IV + `woe_transform`, `xbenchmark` (parallel multi-model
+  comparison), `xsplit` (stratified train/val/test) / `xy`, and
+  `model_dump` / `model_load` with metadata; `ml` extra now includes pandas
 - Agent engine upgrades: `run_agent(response_model=PydanticModel)` for
   validated structured output (invalid JSON is fed back for retry) and
   `run_agent_stream` for incremental streaming with in-band tool execution

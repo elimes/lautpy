@@ -32,12 +32,12 @@ http = ["requests"]  # notice / apis 需要
 retry = ["tenacity>=8.0"]
 llm = ["openai>=1.0"]
 yaml = ["pyyaml"]
-ml = ["scikit-learn"]
+ml = ["scikit-learn>=1.0", "pandas", "numpy"]
 numpy = ["numpy"]
 agent = ["langchain>=1.0", "langchain-openai>=1.0"]
-all = ["requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy",
+all = ["requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "pandas", "numpy",
        "langchain>=1.0", "langchain-openai>=1.0"]
-dev = ["pytest", "requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy",
+dev = ["pytest", "requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "pandas", "numpy",
        "langchain>=1.0", "langchain-openai>=1.0"]
 
 [project.urls]
