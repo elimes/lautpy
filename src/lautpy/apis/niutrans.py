@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 """NiuTrans translation API.
 
-Ported from meutils.apis.niutrans: the hardcoded key became an environment
-variable (NIUTRANS_API_KEY), the openai-async dependency was dropped in
-favor of plain requests, and a timeout was added.
+The key is resolved from the environment (NIUTRANS_API_KEY) at call time;
+HTTP goes through the shared client with timeout and retry.
 """
 
 from typing import Optional

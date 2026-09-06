@@ -92,8 +92,6 @@ translate("你好", "auto", "en")           # NiuTrans 翻译
 shorten_url("https://example.com/...")   # 无需密钥的短链/二维码工具
 ```
 
-> 关于从 meutils 移植的取舍：meutils 有 325 个 API 封装文件，但其中大部分并非独立函数——它们依赖原作者的私人基建（飞书表格里的 key 池、其个人的阿里云 OSS、one-api 网关），还有 75 个文件内嵌明文密钥，通知模块甚至硬编码了作者本人的 webhook 地址。这些代码即使改成环境变量也无法脱离原体系验证，因此**没有全量移植**。同样未移植：`db/`、`oss/`（厂商 SDK 薄封装，价值低于直接用 SDK）、`schemas/`（重复 openai 官方自带的 pydantic 模型）、`crawlers/`（上游本身是空目录）。本包只移植了可独立运行、可测试的部分，新接入照 `client.py` 模式即可。
-
 ## 设计约定
 
 - `import lautpy` 零第三方强制依赖，无导入副作用
@@ -102,4 +100,4 @@ shorten_url("https://example.com/...")   # 无需密钥的短链/二维码工具
 
 ## License
 
-Apache-2.0。部分代码移植自 [MeUtils](https://pypi.org/project/meutils/)（MIT License, Copyright (c) yuanjie），详见各模块 docstring。
+Apache-2.0

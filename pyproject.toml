@@ -10,7 +10,7 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
 authors = [
-    {name = "elimes", email = "elimes@qq.com"},
+    {name = "elimes"},
 ]
 keywords = ["utils", "pipe", "functional", "decorators", "retry", "webhook", "openai", "toolkit"]
 classifiers = [

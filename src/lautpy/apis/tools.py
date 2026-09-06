@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Keyless web utilities ported from meutils.apis.common.
-
-Only the key-free services were ported; the ft12 variant (hardcoded key) was
-dropped deliberately.
-"""
+"""Keyless web utilities: URL shortening and QR-code generation."""
 
 import socket
 from pathlib import Path

@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 """Group-chat notifications via webhook robots (WeCom / Feishu).
 
-Ported from meutils.notice with one critical change: meutils hardcoded the
-author's own webhook URLs (notifications silently landed in *his* chat
-groups). Here the webhook URL is resolved from the environment and there is
-no default:
+Security model: webhook URLs are resolved from the environment at call time
+and there is no default — notifications can only go where *you* configured:
 
 - ``WECOM_WEBHOOK_URL``   WeCom (企业微信) group robot
 - ``FEISHU_WEBHOOK_URL``  Feishu (飞书) custom bot
@@ -72,7 +70,7 @@ def feishu(
     if isinstance(content, (list, tuple)):
         content = "\n".join(map(str, content))
     content = f"{title}\n{content}".strip()
-    # Feishu renders < > as XML tags; escape them like meutils did.
+    # Feishu renders < > as XML tags; escape them (they render as XML tags).
     text = str(content).replace("<", "【").replace(">", "】")
 
     results = {}

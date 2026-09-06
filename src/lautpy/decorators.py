@@ -2,23 +2,18 @@
 # -*- coding: utf-8 -*-
 """Function decorators: retry, timeout, background, rate-limit, singleton.
 
-Ported from meutils.decorators with deliberate changes:
+Design decisions:
 
-- ``retrying`` is a thin wrapper over tenacity (optional dependency).
-  meutils' default failure hook sent a Feishu message to the author's private
-  webhook — removed; failures are logged instead.
-- ``timeout``: meutils defined it twice and leaked a ThreadPoolExecutor per
-  call; here the executor is always shut down and a builtin ``TimeoutError``
-  is raised (portable across platforms).
-- ``background_task``: meutils leaked a ThreadPoolExecutor per call and
-  returned a bool; here the pool is shut down after submission and the
-  ``Future`` is returned so callers can inspect results.
-- ``ratelimit``: sliding-window limiter, stdlib only (meutils used the
-  third-party ``ratelimit`` package via its own wrapper).
-- Skipped on purpose: ``fork`` (Unix-only, and meutils' version runs the task
-  in both parent and child), ``scheduler`` (blocking ``while True`` inside a
-  decorator is a footgun), ``do_nothing`` (trivial), ``pylock`` (kept as
-  ``synchronized`` with a per-function default lock).
+- ``retrying`` is a thin, sync-only wrapper over tenacity (optional
+  dependency) with exponential backoff and reraise-on-exhaustion; failures
+  are logged, never silently swallowed or pushed to external services.
+- ``timeout`` raises a builtin ``TimeoutError`` and always shuts down its
+  executor.
+- ``background_task`` returns the ``Future`` so results can be inspected;
+  exceptions are logged with context.
+- ``ratelimit`` is a stdlib sliding-window limiter.
+- Deliberately NOT provided: process forking (not portable, unsafe to kill)
+  and blocking-loop schedulers (use APScheduler or cron instead).
 """
 
 import functools

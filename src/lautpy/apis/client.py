@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """HTTP client infrastructure for third-party API wrappers.
 
-Security model (the main lesson from meutils' apis/*): API keys are NEVER
+Security model: API keys are NEVER
 hardcoded — they are resolved from environment variables at call time.
 """
 
@@ -13,7 +13,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-DEFAULT_TIMEOUT = 30  # seconds; meutils used no timeout at all
+DEFAULT_TIMEOUT = 30  # seconds
 
 
 class MissingAPIKeyError(RuntimeError):

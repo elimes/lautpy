@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """Hash helpers: md5 digest and Java-compatible murmurhash bucketing (AB tests).
 
-Adapted from meutils.hash_utils (MIT License, Copyright (c) yuanjie).
 """
 
 import hashlib as _hashlib
@@ -31,8 +30,7 @@ def murmurhash(
 ) -> int:
     """Positive murmurhash3_32 of "value:key", optionally bucketed modulo `bins`.
 
-    Results match the Java Guava murmur3_32 convention used by the original
-    meutils implementation. Requires scikit-learn.
+    Compatible with the Java Guava murmur3_32 convention. Requires scikit-learn.
     """
     if _murmurhash3_32 is None:
         raise ImportError("scikit-learn is required: pip install scikit-learn")
@@ -67,8 +65,7 @@ def hash_bins(values: Iterable, bins: int = 3, str2md5: bool = False) -> List[Li
 
     Same value always lands in the same bucket (given the same `bins`), which
     makes this suitable for consistent sharding / hash-based AB routing.
-    Replaces meutils' xHashBins (same idea, murmurhash moved into this module).
-    """
+"""
     buckets: dict = {}
     for v in values:
         idx = murmurhash(key=str(v), value=str(v), bins=bins, str2md5=str2md5)
@@ -79,8 +76,7 @@ def hash_bins(values: Iterable, bins: int = 3, str2md5: bool = False) -> List[Li
 class BloomFilter:
     """Fixed-capacity Bloom filter, standard library only.
 
-    Replaces meutils' xBloomFilter (backed by the unmaintained pybloom_live).
-    Never returns false negatives; may return false positives within
+Never returns false negatives; may return false positives within
     `error_rate` for membership checks of values never added.
     """
 

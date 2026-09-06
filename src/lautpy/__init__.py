@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Project      : X.
+# @Project      : lautpy
 # @File         : __init__.py
 # @Time         : 2020/11/12 10:54 上午
-# @Author       : liufeng
-# @Email        : elimes@qq.com
+# @Author       : elimes
 # @Software     : PyCharm
 # @Description  :
 

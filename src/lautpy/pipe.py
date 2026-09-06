@@ -3,8 +3,7 @@
 # @Project      : lautpy.
 # @File         : pipe_utils
 # @Time         : 2020/11/12 11:35 上午
-# @Author       : liufeng
-# @Email        : elimes@qq.com
+# @Author       : elimes
 # @Software     : PyCharm
 # @Description  :
 """
@@ -152,7 +151,7 @@ xchain = Pipe(lambda iters: itertools.chain.from_iterable(iters))
 xzip = Pipe(zip)
 xreduce = Pipe(lambda iterable, func: functools.reduce(func, iterable))
 
-# 急切变体（约定：尾部下划线 = 立即求值返回 list，源自 meutils 的命名习惯）
+# 急切变体（约定：尾部下划线 = 立即求值返回 list）
 xmap_ = Pipe(lambda iterable, func: list(map(func, iterable)))
 xfilter_ = Pipe(lambda iterable, func: list(filter(func, iterable)))
 xenumerate_ = Pipe(lambda iterable, start=0: list(enumerate(iterable, start)))
@@ -266,8 +265,8 @@ def xUnique(iterable, keep_order: bool = True):
 def xUniquePlus(iterable, key_fn: Optional[Callable] = None):
     """Dedup arbitrary objects (incl. unhashable ones), keeping first occurrence.
 
-    Unlike meutils' xUnique_plus this needs no joblib: hashable keys use hash(),
-    others fall back to a pickle digest (note: dict key order matters).
+    Hashable keys use hash(); others fall back to a pickle digest
+    (note: dict key order matters).
     """
     import pickle
 
@@ -287,8 +286,7 @@ def xUniquePlus(iterable, key_fn: Optional[Callable] = None):
 def xBloomFilter(iterable, capacity: int = 1_000_000, error_rate: float = 0.01):
     """Build a BloomFilter (see lautpy.hashing) from an iterable of members.
 
-    Replaces meutils' xBloomFilter backed by pybloom_live with a stdlib-only
-    implementation. Usage::
+    Usage::
 
         bloom = [i for i in range(100)] | xBloomFilter(capacity=1000)
         42 in bloom  # True

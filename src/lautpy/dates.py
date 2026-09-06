@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """Date/time helpers (stdlib only).
 
-Adapted from meutils.date_utils (MIT License, Copyright (c) yuanjie).
 """
 
 import datetime

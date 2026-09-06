@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 """OpenAI-compatible client factory.
 
-Replaces meutils.llm.clients, which created module-level clients for a fixed
-vendor list at import time (and leaked commented-out keys in source). Here:
-clients are built on demand from the environment, cached per (service, key,
-base_url), and the vendor list is open-ended — any service exposing an
-OpenAI-compatible API works::
+Clients are built on demand from the environment and cached per
+(service, key, base_url); the vendor list is open-ended — any service
+exposing an OpenAI-compatible API works::
 
     export MOONSHOT_API_KEY=...          # optional: MOONSHOT_BASE_URL
     export ZHIPUAI_API_KEY=...           # optional: ZHIPUAI_BASE_URL

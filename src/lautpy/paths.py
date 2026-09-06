@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """Path & config-file helpers.
 
-Adapted from meutils.path_utils (MIT License, Copyright (c) yuanjie).
 """
 
 import json
