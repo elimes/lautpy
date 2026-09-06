@@ -8,9 +8,10 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 - Unified logger fallback in a single internal module (`_internal.py`)
 - `xThreadPoolExecutor`/`xProcessPoolExecutor` share one implementation
 - `xsse_parser` logs JSON decode errors through the package logger instead of raw `print`
-- `notice`: long messages are now split by UTF-8 byte length (CJK-safe), never mid-character
+- `notice`: long messages are now split by UTF-8 byte length (CJK-safe), never mid-character; empty title no longer leaves a `****` markdown artifact
 - Version number is now sourced solely from `.data/VERSION` (setuptools dynamic version); `release.sh` no longer patches pyproject.toml
 - Added CI test workflow (Python 3.8–3.13 matrix + ruff) alongside the publish workflow
+- Docstring pass across all modules: unified Google-style Args/Returns/Example (Chinese), accurate `__doc__` on plain Pipe instances, stale template headers removed; ruff configured and clean
 
 ### Added
 - `docs/architecture.md`, `docs/usage.md`, this changelog

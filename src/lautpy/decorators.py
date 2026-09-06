@@ -1,19 +1,16 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Function decorators: retry, timeout, background, rate-limit, singleton.
+# @Author: elimes
+"""函数装饰器：重试、超时、后台执行、限流、单例。
 
-Design decisions:
+设计决策：
 
-- ``retrying`` is a thin, sync-only wrapper over tenacity (optional
-  dependency) with exponential backoff and reraise-on-exhaustion; failures
-  are logged, never silently swallowed or pushed to external services.
-- ``timeout`` raises a builtin ``TimeoutError`` and always shuts down its
-  executor.
-- ``background_task`` returns the ``Future`` so results can be inspected;
-  exceptions are logged with context.
-- ``ratelimit`` is a stdlib sliding-window limiter.
-- Deliberately NOT provided: process forking (not portable, unsafe to kill)
-  and blocking-loop schedulers (use APScheduler or cron instead).
+- ``retrying`` 是 tenacity 的同步薄封装（可选依赖）；失败只记日志，
+  绝不静默吞掉、也不推送外部服务
+- ``timeout`` 超时抛内置 ``TimeoutError``，并保证关闭线程执行器
+- ``background_task`` 返回 ``Future`` 供检查结果，异常带上下文记日志
+- ``ratelimit`` 为纯标准库滑动窗口限流
+- 有意不提供：进程 fork（不可移植、无法安全终止）、阻塞式循环调度器
+  （请改用 APScheduler / cron）
 """
 
 import functools
@@ -32,7 +29,7 @@ except ImportError:
 
 F = TypeVar("F", bound=Callable)
 
-#: Exceptions that should never be retried by default ( programming errors ).
+#: 默认不重试的异常（多为编程错误，重试没有意义）
 _NON_RETRYABLE: Tuple[Type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
@@ -48,12 +45,20 @@ def retrying(
     retry_on_result: Optional[Callable[[Any], bool]] = None,
     ignored_exceptions: Optional[Tuple[Type[BaseException], ...]] = None,
 ) -> Callable[[F], F]:
-    """Retry with exponential backoff; re-raises the last exception on exhaustion.
+    """指数退避重试；重试耗尽后原样抛出最后一次异常。
 
-    Sync functions only (async support intentionally left out — use tenacity
-    directly for that). Requires tenacity: ``pip install tenacity``.
+    仅支持同步函数（异步场景请直接使用 tenacity）。需要 tenacity：
+    ``pip install "lautpy[retry]"``。
 
-    Usage::
+    Args:
+        max_retries: 首次失败后的最大重试次数（总调用 = max_retries + 1）。
+        exp_base: 退避指数基数，第 n 次重试约等待 2**n 秒（封顶 max_wait）。
+        max_wait: 单次重试等待上限（秒）。
+        retry_on_result: 传入谓词时，结果为 True 也触发重试。
+        ignored_exceptions: 这些异常类型不重试，直接抛出；程序性错误
+            （KeyboardInterrupt/FileNotFoundError 等）默认就不重试。
+
+    Example::
 
         @retrying(max_retries=3)
         def flaky(): ...
@@ -89,10 +94,13 @@ def retrying(
 
 
 def timeout(seconds: float) -> Callable[[F], F]:
-    """Run the function in a worker thread and raise ``TimeoutError`` if it
-    exceeds `seconds`. The worker keeps running in the background after the
-    timeout (a thread cannot be killed safely) — avoid side effects you cannot
-    undo.
+    """在工作线程中运行函数，超过 seconds 秒抛 ``TimeoutError``。
+
+    注意：线程无法被安全杀死，超时后工作线程仍在后台运行——被装饰的
+    函数不应有无法回滚的副作用。
+
+    Args:
+        seconds: 超时秒数。
     """
     import concurrent.futures
 
@@ -114,10 +122,12 @@ def timeout(seconds: float) -> Callable[[F], F]:
 
 
 def background_task(func: F) -> F:
-    """Fire-and-forget execution: returns immediately with the ``Future``;
-    exceptions are logged with traceback when the task finishes.
+    """发射后不管（fire-and-forget）：立即返回 ``Future``，任务在后台执行。
 
-    Usage::
+    任务异常不会打断主流程，但会带上下文记入日志；需要结果时用返回的
+    ``future.result()``。
+
+    Example::
 
         @background_task
         def notify(): ...
@@ -140,8 +150,16 @@ def background_task(func: F) -> F:
 
 
 def ratelimit(calls: int, period: float) -> Callable[[F], F]:
-    """Sliding-window rate limit: allow at most `calls` invocations per
-    `period` seconds (per decorated function); blocks until a slot is free.
+    """滑动窗口限流：每个被装饰函数在 period 秒内最多调用 calls 次，超限阻塞等待。
+
+    Args:
+        calls: 窗口内允许的最大调用次数，须为正。
+        period: 窗口长度（秒），须为正。
+
+    Example::
+
+        @ratelimit(calls=5, period=1)   # 每秒最多 5 次
+        def api_call(): ...
     """
     if calls <= 0 or period <= 0:
         raise ValueError("calls and period must be positive")
@@ -168,8 +186,9 @@ def ratelimit(calls: int, period: float) -> Callable[[F], F]:
 
 
 def singleton(cls: type) -> type:
-    """Class decorator keeping a single shared instance (init args are
-    ignored on subsequent instantiations).
+    """单例装饰器：全进程共享一个实例（再次实例化时忽略构造参数）。
+
+    原 class 仍可通过 ``SomeClass.__wrapped__`` 访问（便于测试）。
     """
     instances = {}
     lock = threading.Lock()
@@ -187,7 +206,11 @@ def singleton(cls: type) -> type:
 
 
 def synchronized(lock: Optional[threading.Lock] = None) -> Callable[[F], F]:
-    """Serialize calls to the function with a lock (a dedicated one by default)."""
+    """串行化对函数的调用（默认为每个函数配一把独立锁）。
+
+    Args:
+        lock: 多个函数需要共用一把锁时显式传入。
+    """
     def decorator(func: F) -> F:
         fn_lock = lock if lock is not None else threading.Lock()
 
@@ -202,9 +225,13 @@ def synchronized(lock: Optional[threading.Lock] = None) -> Callable[[F], F]:
 
 
 def tryer(task: str, is_trace: bool = False):
-    """Context manager factory: swallow exceptions but log them.
+    """吞掉异常但记录日志的上下文管理器（容错包裹）。
 
-    Usage::
+    Args:
+        task: 任务名，用于日志定位。
+        is_trace: True 时记录完整堆栈，否则只记异常摘要。
+
+    Example::
 
         with tryer("cleanup"):
             maybe_failing()

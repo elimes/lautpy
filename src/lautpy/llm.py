@@ -1,13 +1,12 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""OpenAI-compatible client factory.
+# @Author: elimes
+"""OpenAI 兼容客户端工厂。
 
-Clients are built on demand from the environment and cached per
-(service, key, base_url); the vendor list is open-ended — any service
-exposing an OpenAI-compatible API works::
+客户端按需构建并缓存（键为 service + key + base_url）；厂商列表开放——
+任何暴露 OpenAI 兼容 API 的服务都能接::
 
-    export MOONSHOT_API_KEY=...          # optional: MOONSHOT_BASE_URL
-    export ZHIPUAI_API_KEY=...           # optional: ZHIPUAI_BASE_URL
+    export MOONSHOT_API_KEY=...          # 可选: MOONSHOT_BASE_URL
+    export ZHIPUAI_API_KEY=...           # 可选: ZHIPUAI_BASE_URL
 
     from lautpy.llm import openai_client
     client = openai_client("moonshot")
@@ -40,9 +39,26 @@ def openai_client(
     api_key: Optional[str] = None,
     base_url: Optional[str] = None,
 ) -> Any:
-    """Build (and cache) an ``openai.OpenAI`` client for any compatible service.
+    """获取某服务的 OpenAI 兼容客户端（同参数重复调用返回缓存实例）。
 
-    The openai package is an optional dependency: ``pip install openai``.
+    Args:
+        service: 服务名，决定读取的环境变量前缀，如 "moonshot" →
+            MOONSHOT_API_KEY / MOONSHOT_BASE_URL；"openai" 走官方默认。
+        api_key: 显式指定密钥（优先于环境变量）；通常留空走环境。
+        base_url: 显式指定接入点（优先于环境变量）；留空时官方服务无需设置。
+
+    Returns:
+        openai.OpenAI: 可直接调用 chat.completions / embeddings 等接口的客户端。
+
+    Raises:
+        RuntimeError: 环境与入参均未提供密钥。
+        ImportError: 未安装 openai（``pip install "lautpy[llm]"``）。
+
+    Example::
+
+        client = openai_client("moonshot")
+        client.chat.completions.create(model="moonshot-v1-8k",
+                                       messages=[{"role": "user", "content": "你好"}])
     """
     if OpenAI is None:
         raise ImportError("openai is required: pip install openai")

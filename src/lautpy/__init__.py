@@ -1,11 +1,13 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# @Project      : lautpy
-# @File         : __init__.py
-# @Time         : 2020/11/12 10:54 上午
-# @Author       : elimes
-# @Software     : PyCharm
-# @Description  :
+# @Author: elimes
+"""lautpy —— 轻量 Python 工具集。
+
+导入即获得全部管道函数（``from lautpy.pipe import *`` 的效果），
+其余模块按需访问：``dates`` / ``paths`` / ``hashing`` / ``decorators`` /
+``notice`` / ``llm`` / ``apis``。
+
+用法见 docs/usage.md；`__version__` 来自包元数据。
+"""
 
 from . import apis, dates, decorators, hashing, llm, notice, paths  # noqa: F401
 from .pipe import *  # noqa: F401,F403

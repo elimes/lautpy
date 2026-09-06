@@ -56,7 +56,18 @@ def wecom(
     mentioned_mobile_list: Optional[List[str]] = None,
     webhook_url: Optional[str] = None,
 ) -> dict:
-    """Send a markdown message to a WeCom group robot."""
+    """发送企业微信群机器人消息（markdown 格式）。
+
+    Args:
+        content: 消息内容；传 list/tuple 时自动用换行拼接。
+        title: 标题，非空时以 ``**标题**`` 加粗置于首行。
+        mentioned_mobile_list: 需要 @ 的手机号列表，``["@all"]`` 可全员@
+        webhook_url: 显式指定机器人地址；缺省读环境变量 WECOM_WEBHOOK_URL
+            （支持完整 URL 或纯 key）。
+
+    Returns:
+        dict: 按分段返回的接口响应（key 为 part0/part1/...）。
+    """
     if isinstance(content, (list, tuple)):
         content = "\n".join(map(str, content))
     content = f"**{title}**\n{content}".strip() if title else content.strip()
@@ -81,7 +92,17 @@ def feishu(
     title: str = "",
     webhook_url: Optional[str] = None,
 ) -> dict:
-    """Send a text message to a Feishu custom bot."""
+    """发送飞书自定义机器人消息（text 格式，<> 会转义为【】避免被解析为标签）。
+
+    Args:
+        content: 消息内容；传 list/tuple 时自动用换行拼接。
+        title: 标题，非空时置于首行。
+        webhook_url: 显式指定机器人地址；缺省读环境变量 FEISHU_WEBHOOK_URL
+            （支持完整 URL 或纯 key）。
+
+    Returns:
+        dict: 按分段返回的接口响应（key 为 part0/part1/...）。
+    """
     if isinstance(content, (list, tuple)):
         content = "\n".join(map(str, content))
     content = f"{title}\n{content}".strip()

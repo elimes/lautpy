@@ -1,9 +1,9 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""HTTP client infrastructure for third-party API wrappers.
+# @Author: elimes
+"""第三方 API 封装的 HTTP 基建。
 
-Security model: API keys are NEVER
-hardcoded — they are resolved from environment variables at call time.
+安全模型：密钥**绝不**写进源码，一律在调用时从环境变量解析。
+所有封装的 HTTP 出口统一走 request()（默认超时 + 瞬时故障自动重试）。
 """
 
 import os
@@ -17,13 +17,24 @@ DEFAULT_TIMEOUT = 30  # seconds
 
 
 class MissingAPIKeyError(RuntimeError):
-    """Raised when an API key is not configured in the environment."""
+    """环境中未找到所需密钥时抛出（错误信息会指明应设置的环境变量名）。"""
 
 
 def get_api_key(service: str, env_var: Optional[str] = None) -> str:
-    """Resolve an API key from the environment.
+    """从环境变量解析 API 密钥。
 
-    Looks up `env_var` first, then `<SERVICE>_API_KEY` (e.g. NIUTRANS_API_KEY).
+    查找顺序：先 ``env_var``（若指定），再默认的 ``<SERVICE>_API_KEY``
+    （如 service="niutrans" → NIUTRANS_API_KEY）。
+
+    Args:
+        service: 服务名（决定默认环境变量名与报错提示）。
+        env_var: 显式指定的环境变量名，优先于默认规则。
+
+    Returns:
+        str: 去除首尾空白后的密钥。
+
+    Raises:
+        MissingAPIKeyError: 所有候选环境变量都未配置。
     """
     names = [env_var] if env_var else []
     default = f"{service.upper()}_API_KEY"
@@ -40,7 +51,12 @@ def get_api_key(service: str, env_var: Optional[str] = None) -> str:
 
 
 def http_session(retries: int = 2, backoff_factor: float = 0.5) -> requests.Session:
-    """A requests session with retry on transient failures (429/5xx)."""
+    """构造带重试策略的 requests.Session。
+
+    Args:
+        retries: 瞬时故障（429/5xx）的最大重试次数。
+        backoff_factor: 重试退避系数（第 n 次重试等待约 backoff * 2**(n-1) 秒）。
+    """
     session = requests.Session()
     retry = Retry(
         total=retries,
@@ -57,7 +73,22 @@ def http_session(retries: int = 2, backoff_factor: float = 0.5) -> requests.Sess
 def request(method: str, url: str, *, timeout: float = DEFAULT_TIMEOUT,
             retries: int = 2, session: Optional[requests.Session] = None,
             **kwargs) -> requests.Response:
-    """request() with sane defaults: timeout (mandatory-ish) + retry + raise_for_status."""
+    """本包统一的 HTTP 出口：强制超时 + 瞬时故障重试 + 非 2xx 抛异常。
+
+    Args:
+        method: HTTP 方法（GET/POST/...）。
+        url: 请求地址。
+        timeout: 超时秒数（默认 30s；**不要**为省事传 None）。
+        retries: 新建 session 的重试次数；传入 session 时该参数无效。
+        session: 复用调用方提供的 Session（此时由调用方负责关闭）。
+        **kwargs: 透传给 requests.Session.request（params/json/headers/...）。
+
+    Returns:
+        requests.Response: 已通过 raise_for_status 校验的响应。
+
+    Raises:
+        requests.HTTPError: 响应状态码非 2xx（含重试耗尽后）。
+    """
     own_session = session is None
     s = session or http_session(retries=retries)
     try:

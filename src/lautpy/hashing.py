@@ -1,7 +1,8 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Hash helpers: md5 digest and Java-compatible murmurhash bucketing (AB tests).
+# @Author: elimes
+"""哈希工具：md5 摘要、与 Java 口径一致的 murmurhash 分桶、AB 实验分流、布隆过滤器。
 
+murmurhash 系功能需要 scikit-learn；BloomFilter 为纯标准库实现。
 """
 
 import hashlib as _hashlib
@@ -16,7 +17,14 @@ except ImportError:
 
 
 def md5(data: Union[str, bytes]) -> str:
-    """Hex md5 digest of a str (utf-8 encoded) or bytes."""
+    """计算 md5 摘要。
+
+    Args:
+        data: str 按 utf-8 编码后计算；bytes 原样计算。
+
+    Returns:
+        str: 32 位十六进制摘要。
+    """
     if isinstance(data, str):
         data = data.encode("utf8")
     return _hashlib.md5(data).hexdigest()
@@ -28,9 +36,18 @@ def murmurhash(
     bins: Optional[int] = None,
     str2md5: bool = True,
 ) -> int:
-    """Positive murmurhash3_32 of "value:key", optionally bucketed modulo `bins`.
+    """计算 "value:key" 的 murmurhash3_32（正值），可按 bins 取模分桶。
 
-    Compatible with the Java Guava murmur3_32 convention. Requires scikit-learn.
+    与 Java Guava murmur3_32 口径一致，适合跨语言系统共用同一套分桶规则。
+
+    Args:
+        key: 键（参与哈希的字符串，与 value 以冒号拼接）。
+        value: 值。
+        bins: 分桶数；给定时返回 ``hash % bins``，None 返回原始哈希值。
+        str2md5: 是否先对拼接串做一次 md5 再哈希（与部分历史系统对齐）。
+
+    Requires:
+        scikit-learn（未安装时抛 ImportError）。
     """
     if _murmurhash3_32 is None:
         raise ImportError("scikit-learn is required: pip install scikit-learn")
@@ -42,12 +59,14 @@ def murmurhash(
 
 
 class ABTest:
-    """Bucket-based AB-test assignment.
+    """基于哈希分桶的 AB 实验分流：同一用户永远落在同一桶，结果稳定可复现。
 
-    A user hits the experiment when murmurhash(f"{user_id}:{expid}") % bins
-    falls inside `ranger`. Usage::
+    命中规则：murmurhash(f"{user_id}:{expid}") % bins 落在 ranger 区间内。
 
-        if ABTest(expid='10001', ranger=(0, 99), bins=100).is_hit(user_id):
+    Example::
+
+        ab = ABTest(expid='10001', ranger=(0, 99), bins=100)
+        if ab.is_hit(user_id):   # 0~99 号桶 = 1% 流量
             ...
     """
 
@@ -57,15 +76,27 @@ class ABTest:
         self._expid = expid
 
     def is_hit(self, value: str = "userid") -> bool:
+        """判断用户是否命中实验组。
+
+        Args:
+            value: 用户标识（同一标识多次调用结果恒定）。
+        """
         return murmurhash(key=self._expid, value=value, str2md5=False) % self._bins in self._ranger
 
 
 def hash_bins(values: Iterable, bins: int = 3, str2md5: bool = False) -> List[List]:
-    """Group values into `bins` stable buckets by murmurhash.
+    """按 murmurhash 把元素稳定分成 bins 组（同一元素必落同组）。
 
-    Same value always lands in the same bucket (given the same `bins`), which
-    makes this suitable for consistent sharding / hash-based AB routing.
-"""
+    适合一致性分片、按 key 分流等场景；bins 相同时重复调用分组结果不变。
+
+    Args:
+        values: 待分组的元素（内部转为 str 参与哈希）。
+        bins: 组数。
+        str2md5: 是否先 md5 再哈希（语义同 murmurhash）。
+
+    Returns:
+        List[List]: 分组结果（组的顺序不定），各组拼接 = 输入全集。
+    """
     buckets: dict = {}
     for v in values:
         idx = murmurhash(key=str(v), value=str(v), bins=bins, str2md5=str2md5)
@@ -74,10 +105,20 @@ def hash_bins(values: Iterable, bins: int = 3, str2md5: bool = False) -> List[Li
 
 
 class BloomFilter:
-    """Fixed-capacity Bloom filter, standard library only.
+    """定容布隆过滤器（纯标准库实现）。
 
-Never returns false negatives; may return false positives within
-    `error_rate` for membership checks of values never added.
+    特性：**绝不漏报**（添加过的元素一定命中）；对未添加的元素可能以
+    error_rate 概率**误报**。适合黑名单、爬虫去重等可容忍少量误报的场景。
+
+    Args（构造参数）:
+        capacity: 预期元素数量上限。
+        error_rate: 目标误报率，(0, 1) 区间。
+
+    Example::
+
+        bloom = BloomFilter(capacity=1000, error_rate=0.01)
+        bloom.add("a")
+        "a" in bloom    # True
     """
 
     def __init__(self, capacity: int = 1_000_000, error_rate: float = 0.01):
@@ -98,7 +139,11 @@ Never returns false negatives; may return false positives within
         return ((h1 + i * h2) % self._m for i in range(self._k))
 
     def add(self, value) -> bool:
-        """Add a value; return False if it was (probably) already present."""
+        """添加元素。
+
+        Returns:
+            bool: False 表示该元素可能已存在（重复添加）；True 表示首次加入。
+        """
         was_present = value in self
         for idx in self._hashes(value):
             self._bits[idx >> 3] |= 1 << (idx & 7)
