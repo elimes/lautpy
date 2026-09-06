@@ -10,10 +10,14 @@
 - **结构化输出**：run_agent(response_model=PydanticModel) → 最终回答按模型校验，
   校验失败自动把错误回传给模型重试（需 pydantic，openai 已自带）
 - **流式输出**：run_agent_stream(...) 逐段产出最终回答的文本增量
+- **harness 守卫**：结果截断 / 重复调用检测 / 审批门 / 字符预算 / 历史压缩
+  （见 lautpy.agent.harness.Harness）
 """
 
 import json
+from collections import deque
 from collections.abc import Iterator
+from types import SimpleNamespace
 from typing import Any
 
 from lautpy._internal import logger
@@ -38,12 +42,15 @@ def run_agent_loop(
     max_turns: int = 8,
     client: Any | None = None,
     response_model: Any | None = None,
+    harness: Any | None = None,
 ) -> Any:
     """执行 Agent 主循环（参数说明见 lautpy.agent.run_agent）。
 
     Args:
         response_model: pydantic 模型类。给定时最终回答按其校验，返回校验后的
             实例；校验失败会把错误信息回传给模型重试（计入 max_turns）。
+        harness: ``lautpy.agent.Harness`` 守卫配置（结果截断/重复检测/审批门/
+            字符预算/历史压缩）；None 时不启用任何守卫。
     """
     if client is None:
         from lautpy import llm
@@ -62,9 +69,30 @@ def run_agent_loop(
     messages.extend(history or [])
     messages.append({"role": "user", "content": prompt})
 
+    recent_calls: deque = deque(maxlen=(harness.max_repeats or 1) if harness else 1)
+    force_final = False
+
     for _turn in range(max_turns):
+        # 历史压缩（达到阈值的 2 倍时触发一次）
+        if harness and harness.compact:
+            keep = int(harness.compact.get("keep_recent", 8))
+            if len(messages) - 1 > keep * 2:  # 除 system 外的体量
+                messages = _compact(messages, keep, harness.compact.get("summarizer"))
+
+        total_chars = sum(len(str(m.get("content", ""))) for m in messages)
+        over_budget = (harness is not None and harness.max_context_chars is not None
+                       and total_chars > harness.max_context_chars)
+        if over_budget and not force_final:
+            force_final = True
+            messages.append({
+                "role": "user",
+                "content": "Context budget exceeded. Give your final answer NOW, "
+                           "without any tool calls.",
+            })
+            logger.warning(f"context budget exceeded ({total_chars} chars), forcing final answer")
+
         create_kwargs: dict[str, Any] = {"model": model_name, "messages": messages}
-        if tool_specs:
+        if tool_specs and not force_final:  # 预算超限后收回工具，逼出最终回答
             create_kwargs["tools"] = tool_specs
         message = client.chat.completions.create(**create_kwargs).choices[0].message
 
@@ -74,7 +102,7 @@ def run_agent_loop(
                 messages.append({  # noqa: PERF401 - 逐个执行工具有副作用，保持显式循环
                     "role": "tool",
                     "tool_call_id": tc.id,
-                    "content": _execute(tool_map, tc),
+                    "content": _execute_guarded(tool_map, tc, harness, recent_calls),
                 })
             continue
 
@@ -99,6 +127,46 @@ def run_agent_loop(
     )
 
 
+def _compact(messages: list[dict], keep_recent: int, summarizer: Any) -> list[dict]:
+    """历史压缩：system 保留；旧消息交给 summarizer（缺省直接丢弃）。"""
+    head, body = messages[:1], messages[1:]
+    if summarizer is None:
+        return head + body[-keep_recent:]
+    old, recent = body[:-keep_recent], body[-keep_recent:]
+    summary = summarizer(old)
+    return head + [{"role": "assistant",
+                    "content": f"[earlier context summarized]\n{summary}"}] + recent
+
+
+def _execute_guarded(tool_map: dict[str, Any], tool_call, harness: Any, recent_calls: deque) -> str:
+    """带 harness 守卫的工具执行：审批门 → 重复检测 → 执行 → 结果截断。"""
+    name = tool_call.function.name
+    arguments = tool_call.function.arguments or "{}"
+
+    if harness and harness.approval is not None:
+        try:
+            args = json.loads(arguments)
+        except json.JSONDecodeError:
+            args = {}
+        if not harness.approval(name, args):
+            logger.warning(f"tool {name} denied by approval gate")
+            return f"Error: tool '{name}' was denied by the approval gate. Choose another way."
+
+    if harness and harness.max_repeats:
+        key = (name, arguments)
+        recent_calls.append(key)
+        if sum(1 for c in recent_calls if c == key) >= harness.max_repeats:
+            logger.warning(f"tool {name} repeated >= {harness.max_repeats} times, blocking")
+            return (f"Error: '{name}' has been called with identical arguments "
+                    f"{harness.max_repeats} times. The approach is not working — "
+                    f"change strategy.")
+
+    result = _execute_named(tool_map, name, arguments)
+    if harness:
+        result = harness.truncate(result)
+    return result
+
+
 def run_agent_stream(
     prompt: str,
     tools: list[Any],
@@ -109,11 +177,13 @@ def run_agent_stream(
     history: list[dict] | None = None,
     max_turns: int = 8,
     client: Any | None = None,
+    harness: Any | None = None,
 ) -> Iterator[str]:
     """流式版 Agent：逐段产出文本增量（含工具轮之间的助手文本），最终回答实时流出。
 
     工具调用轮不产出文本（只在内部执行并回填）；若模型在发起工具调用前
-    输出了文本，这些增量也会照常产出。
+    输出了文本，这些增量也会照常产出。harness 的结果截断/重复检测/审批门
+    同样生效（历史压缩与字符预算仅非流式版支持）。
 
     Yields:
         str: 文本增量。工具循环结束后产出最终回答的逐段文本。
@@ -130,6 +200,8 @@ def run_agent_stream(
     messages: list[dict] = [{"role": "system", "content": system or DEFAULT_SYSTEM}]
     messages.extend(history or [])
     messages.append({"role": "user", "content": prompt})
+
+    recent_calls: deque = deque(maxlen=(harness.max_repeats or 1) if harness else 1)
 
     for _turn in range(max_turns):
         create_kwargs: dict[str, Any] = {"model": model_name, "messages": messages}
@@ -168,11 +240,13 @@ def run_agent_stream(
                 "function": {"name": slot["name"], "arguments": slot["arguments"]},
             } for slot in tool_calls.values()],
         })
-        for slot in tool_calls.values():
-            messages.append({  # noqa: PERF401 - 逐个执行工具有副作用，保持显式循环
+        for slot in tool_calls.values():  # noqa: PERF401 - 逐个执行工具有副作用，保持显式循环
+            fake_call = SimpleNamespace(id=slot["id"], function=SimpleNamespace(
+                name=slot["name"], arguments=slot["arguments"]))
+            messages.append({
                 "role": "tool",
                 "tool_call_id": slot["id"],
-                "content": _execute_named(tool_map, slot["name"], slot["arguments"]),
+                "content": _execute_guarded(tool_map, fake_call, harness, recent_calls),
             })
 
     raise RuntimeError(
@@ -207,11 +281,6 @@ def _validate_structured(content: str, response_model: Any) -> Any:
         if text.lower().startswith("json"):
             text = text[4:]
     return response_model.model_validate_json(text.strip())
-
-
-def _execute(tool_map: dict[str, Any], tool_call) -> str:
-    """执行一次非流式工具调用，把结果安全地序列化为字符串。"""
-    return _execute_named(tool_map, tool_call.function.name, tool_call.function.arguments)
 
 
 def _execute_named(tool_map: dict[str, Any], name: str, arguments: str) -> str:

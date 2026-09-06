@@ -221,6 +221,27 @@ chat(agent, "北京明天适合爬山吗？")     # 便捷单轮封装
 # 也可以直接用 langgraph 原生 API：agent.invoke({"messages": [...]})
 ```
 
+**harness 守卫与工程件**（对齐 DeepAgents 等 harness 的轻量实现）：
+
+```python
+from lautpy.agent import Harness, make_todo_tool, fs_tools, make_subagent_tool
+
+harness = Harness(
+    tool_result_max_chars=2000,          # 工具结果截断，防撑爆上下文
+    max_repeats=3,                       # 同工具同参数连调 3 次即强制换路
+    approval=lambda name, args: name not in ("fs_write",),  # 危险工具审批门
+    max_context_chars=30000,             # 超预算收回工具、强制收尾
+    compact={"keep_recent": 8},          # 历史压缩（可传 summarizer 做摘要）
+)
+answer = run_agent(task, tools, service="moonshot", harness=harness)
+
+todo = make_todo_tool()                  # 计划清单三件套，引导模型先拆解再执行
+files = fs_tools("./workspace")          # 沙箱化文件读写（上下文卸载到文件）
+researcher = make_subagent_tool("researcher", "委派调研任务",
+                                tools=todo, system="你是调研员")  # 子 agent 工具
+answer = run_agent(task, tools + files + [researcher], service="moonshot")
+```
+
 **循环保守**：run_agent 内部是标准的 OpenAI function-calling 轮转
 （模型请求工具 → 执行并回填 → 直到给出最终回答），工具抛错会把错误
 信息回传给模型自行调整，而不是中断；`max_turns` 防死循环。

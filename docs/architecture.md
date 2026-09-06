@@ -34,7 +34,7 @@ lautpy/
 │       ├── client.py           # 基建：get_api_key（环境变量密钥）+ request（超时/重试）
 │       ├── tools.py            # 无密钥工具：shorten_url / data2qrcodeurl / download / is_open
 │       └── niutrans.py         # 翻译 API（示范新 API 的接入模式）
-├── tests/                      # pytest 测试（106 用例，可选依赖缺失自动 skip）
+├── tests/                      # pytest 测试（117 用例，可选依赖缺失自动 skip）
 ├── docs/                       # 本文档 + 使用指南
 ├── CHANGELOG.md                # 版本变更记录（Unreleased 段随发版归档）
 ├── .data/VERSION               # 唯一版本源（pyproject 动态读取）
@@ -111,6 +111,11 @@ class Pipe:
   与 `lautpy.llm` 共用解析逻辑，显式参数优先于环境变量
 - **循环稳健性**：工具执行异常会作为错误信息回传给模型自行调整（不中断循环）；
   未知工具名同样回传报错；`max_turns` 防死循环；`client` 可注入（测试无网络）
+- **harness 守卫**（`Harness`，默认关闭）：工具结果截断、重复调用检测、
+  审批门、字符预算（超限收回工具强制收尾）、历史压缩（朴素截断或
+  summarizer 摘要）——对应 DeepAgents compaction 等 harness 实践
+- **harness 工具构造器**：`make_todo_tool`（计划清单）、`fs_tools`（沙箱文件
+  读写、上下文卸载）、`make_subagent_tool`（agent-as-tool，上下文检疫）
 - **引擎选择**：只需要"模型+工具"用原生引擎（`run_agent`）；需要中间件、
   MCP 等用 `build_agent`
 - **结构化输出**：`run_agent(response_model=PydanticModel)` 把 JSON Schema

@@ -2,7 +2,8 @@
 """Agent 构建工具集：统一的工具定义 + 双轨执行引擎。
 
 - 原生引擎 ``run_agent`` / ``run_agent_stream``：仅依赖 OpenAI 兼容 API 的
-  tool-calling，轻量（openai extra）
+  tool-calling，轻量（openai extra）；配 ``Harness`` 守卫与
+  ``make_todo_tool`` / ``fs_tools`` / ``make_subagent_tool`` 等 harness 件
 - LangChain 引擎 ``build_agent``：包装 langchain 1.x ``create_agent``（agent extra）
 - 两侧共用同一套工具定义：用 ``@tool`` 装饰普通函数即可
 
@@ -13,9 +14,13 @@
 from collections.abc import Iterator
 from typing import Any
 
+from lautpy.agent.harness import Harness, fs_tools, make_subagent_tool, make_todo_tool
 from lautpy.agent.tools import Tool, tool
 
-__all__ = ["Tool", "tool", "run_agent", "run_agent_stream"]
+__all__ = [
+    "Tool", "tool", "run_agent", "run_agent_stream",
+    "Harness", "make_todo_tool", "fs_tools", "make_subagent_tool",
+]
 
 
 def build_agent(tools=None, *, service="openai", model=None, system_prompt=None, **kwargs):
@@ -51,6 +56,7 @@ def run_agent(
     max_turns: int = 8,
     client: Any | None = None,
     response_model: Any | None = None,
+    harness: Harness | None = None,
 ) -> Any:
     """原生 Agent 主循环：LLM ⇄ 工具 轮转，直到模型给出最终回答。
 
@@ -67,6 +73,7 @@ def run_agent(
         client: 注入自定义客户端（测试用）；缺省走 lautpy.llm.openai_client。
         response_model: pydantic 模型类；给定时最终回答按其校验并返回实例，
             校验失败自动回传错误让模型重试（需 pydantic，openai 已自带）。
+        harness: ``Harness`` 守卫配置（结果截断/重复检测/审批门/字符预算/历史压缩）。
 
     Returns:
         str | BaseModel: 未指定 response_model 时返回回答文本；指定时返回
@@ -88,7 +95,8 @@ def run_agent(
 
     return run_agent_loop(prompt, tools or [], service=service, model=model,
                           system=system, history=history, max_turns=max_turns,
-                          client=client, response_model=response_model)
+                          client=client, response_model=response_model,
+                          harness=harness)
 
 
 def run_agent_stream(
@@ -101,11 +109,12 @@ def run_agent_stream(
     history: list[dict] | None = None,
     max_turns: int = 8,
     client: Any | None = None,
+    harness: Harness | None = None,
 ) -> Iterator[str]:
     """流式版原生 Agent：逐段产出文本增量（生成器）。
 
     工具调用轮在内部静默执行并回填，不产出文本；最终回答的文本增量实时产出。
-    参数含义同 run_agent（不支持 response_model）。
+    参数含义同 run_agent（不支持 response_model；harness 的压缩/预算不生效）。
 
     Example::
 
@@ -116,4 +125,4 @@ def run_agent_stream(
 
     return _stream(prompt, tools or [], service=service, model=model,
                    system=system, history=history, max_turns=max_turns,
-                   client=client)
+                   client=client, harness=harness)

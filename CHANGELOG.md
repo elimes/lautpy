@@ -5,6 +5,12 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 ## [Unreleased]
 
 ### Added
+- `lautpy.agent.harness`: lightweight agent-harness pieces (DeepAgents-style) —
+  `Harness` guards (tool-result truncation, repeat-call detection, approval
+  gate, char budget with forced final answer, history compaction with optional
+  summarizer) plus `make_todo_tool` (planning), `fs_tools` (sandboxed file
+  tools for context offloading) and `make_subagent_tool` (agent-as-tool with
+  isolated context); composable, all off by default
 - `lautpy.ml`: machine-learning glue layer — `set_seed`, `best_threshold` /
   `ks_stat` / `psi` / `report_lite` (numpy-only metric gaps), quantile/uniform
   binning with WOE/IV + `woe_transform`, `xbenchmark` (parallel multi-model
