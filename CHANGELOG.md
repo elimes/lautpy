@@ -5,6 +5,9 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 ## [Unreleased]
 
 ### Added
+- `MAINTAINING.md` maintainer handbook (maintenance rhythm, release checklist,
+  quality gates, evolution backlog) and versioned `.githooks/pre-commit`
+  (ruff + mypy at commit time, enabled via `core.hooksPath`)
 - `lautpy.agent.harness`: lightweight agent-harness pieces (DeepAgents-style) —
   `Harness` guards (tool-result truncation, repeat-call detection, approval
   gate, char budget with forced final answer, history compaction with optional

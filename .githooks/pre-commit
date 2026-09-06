@@ -1,0 +1,19 @@
+#!/bin/sh
+# lautpy 本地提交门禁：与 CI 同规则的 ruff + mypy，拦在提交瞬间。
+# 启用：git config core.hooksPath .githooks
+# 依赖：uv（uvx 自动管理工具版本，无需本地安装）
+
+echo "[lautpy pre-commit] ruff check ..."
+uvx ruff check src tests || {
+    echo "[lautpy pre-commit] ruff 未通过，提交已取消。修复后重试（或 uvx ruff check --fix）。"
+    exit 1
+}
+
+echo "[lautpy pre-commit] mypy ..."
+uvx mypy || {
+    echo "[lautpy pre-commit] mypy 未通过，提交已取消。"
+    exit 1
+}
+
+echo "[lautpy pre-commit] 全部通过 ✓"
+exit 0

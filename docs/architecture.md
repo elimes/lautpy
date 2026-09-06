@@ -37,6 +37,8 @@ lautpy/
 ├── tests/                      # pytest 测试（117 用例，可选依赖缺失自动 skip）
 ├── docs/                       # architecture（本页）/ usage / agent / ml
 ├── CHANGELOG.md                # 版本变更记录（Unreleased 段随发版归档）
+├── MAINTAINING.md              # 维护者手册：节奏表/发布清单/门禁/积压单
+├── .githooks/pre-commit        # 本地提交门禁（core.hooksPath 指向此目录）
 ├── .data/VERSION               # 唯一版本源（pyproject 动态读取）
 ├── .github/workflows/
 │   ├── test.yml                # CI：3.10–3.13 矩阵测试 + ruff(E/F/W/I/B/UP/SIM/C4/PERF) + mypy
@@ -133,6 +135,8 @@ class Pipe:
 2. 发版：`./release.sh <版本>` → 提交版本文件 → 打 `v*` tag → `publish.yml` 自动构建并经 trusted publishing 发布到 PyPI
 3. **发版前必须经仓库所有者确认**（流程约定）
 4. CI（`test.yml`）在每次 push/PR 时跑 3.10–3.13 全矩阵测试 + ruff + mypy
+5. 本地提交走 `.githooks/pre-commit`（ruff + mypy，启用：`git config core.hooksPath .githooks`）
+6. 维护节奏表与发布检查清单见 **MAINTAINING.md**
 
 ## 七、测试约定
 
