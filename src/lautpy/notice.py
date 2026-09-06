@@ -59,9 +59,10 @@ def wecom(
     """Send a markdown message to a WeCom group robot."""
     if isinstance(content, (list, tuple)):
         content = "\n".join(map(str, content))
+    content = f"**{title}**\n{content}".strip() if title else content.strip()
     payload = {
         "msgtype": "markdown",
-        "markdown": {"content": f"**{title}**\n{content}".strip()},
+        "markdown": {"content": content},
     }
     if mentioned_mobile_list:
         payload["markdown"]["mentioned_mobile_list"] = mentioned_mobile_list  # type: ignore[index]
