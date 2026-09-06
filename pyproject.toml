@@ -37,7 +37,11 @@ numpy = ["numpy"]
 agent = ["langchain>=1.0", "langchain-openai>=1.0"]
 all = ["requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "pandas", "numpy",
        "langchain>=1.0", "langchain-openai>=1.0"]
-dev = ["pytest", "requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "pandas", "numpy",
+
+# PEP 735 开发依赖组（uv sync 默认安装；pip 用户：pip install --group dev -e .，需 pip>=25.1）
+[dependency-groups]
+dev = ["pytest", "pytest-cov", "ruff", "mypy", "requests", "tenacity>=8.0", "openai>=1.0",
+       "pyyaml", "scikit-learn", "pandas", "numpy",
        "langchain>=1.0", "langchain-openai>=1.0"]
 
 [project.urls]

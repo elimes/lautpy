@@ -34,6 +34,9 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 - `docs/architecture.md`, `docs/usage.md`, this changelog
 
 ### Changed
+- Dev dependencies moved to a PEP 735 `[dependency-groups]` dev group (the `dev`
+  extra was removed — use `uv sync`, or `pip install --group dev` with pip>=25.1);
+  CI switched to `astral-sh/setup-uv` + `uv sync` with cache
 - **Zero mandatory dependencies**: `requests` moved to the new `http` extra;
   `lautpy.apis` / `lautpy.notice` are lazily mounted (PEP 562) so
   `import lautpy` loads no third-party packages

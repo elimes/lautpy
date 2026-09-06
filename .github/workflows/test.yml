@@ -16,26 +16,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
-      - name: Install package with dev extras
-        run: |
-          python -m pip install --upgrade pip
-          pip install ".[dev]"
+      - name: Install project (with dev dependency group)
+        run: uv sync
 
       - name: Run tests (with coverage)
-        run: |
-          pip install pytest-cov
-          pytest tests -q --cov=lautpy --cov-report=term-missing
+        run: uv run pytest tests -q --cov=lautpy --cov-report=term-missing
 
       - name: Lint (ruff)
-        run: |
-          pip install ruff
-          ruff check src tests
+        run: uvx ruff check src tests
 
       - name: Type check (mypy)
-        run: |
-          pip install mypy requests
-          mypy
+        run: uv run mypy
