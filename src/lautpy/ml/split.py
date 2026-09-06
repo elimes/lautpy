@@ -88,7 +88,15 @@ def xy(df: pd.DataFrame, target: Hashable | list[Hashable]) -> tuple[pd.DataFram
 
     Example::
 
-        X, y = df | xy("label")
+        X, y = xy(df, "label")
+
+    注意：不支持 ``df | xy(...)`` 管道写法——pandas DataFrame 重载了 ``|``
+    （元素级 OR），会抢先接管运算符，Pipe 的 __ror__ 不会被触发。
     """
     y = df[target]  # list 与标量列名在 df[...] 下行为一致
     return df.drop(columns=target), y
+
+
+# 注意：xy 不提供 Pipe 包装——DataFrame 在管道左侧时，pandas 的 __or__ 会
+# 接管 | 运算符（元素级 OR），Pipe.__ror__ 不会被调用。
+

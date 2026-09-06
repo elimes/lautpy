@@ -79,12 +79,41 @@ def best_threshold(
 
     lo, hi = float(y_score.min()), float(y_score.max())
     candidates = np.linspace(lo, hi + _EPS, max(int(bins), 2))
-    best_t, best_v = lo, -np.inf
-    for thr in candidates:
-        value = _metric_value(metric, *_binary_counts(y_true, (y_score >= thr).astype(int)))
-        if value > best_v:
-            best_t, best_v = float(thr), value
-    return best_t, best_v
+
+    # 排序一次 + 后缀计数：O(n log n) 内得到全部候选阈值的混淆矩阵
+    order = np.argsort(y_score, kind="stable")
+    s_sorted = y_score[order]
+    y_sorted = y_true[order]
+    n = y_sorted.size
+    total_pos = float(np.sum(y_sorted == 1))
+    cum_pos = np.cumsum(y_sorted)  # 升序前 i 个样本中的正样本数
+    idx = np.searchsorted(s_sorted, candidates, side="left")  # score >= thr 的起始下标
+    pos_pred = n - idx
+    tp = total_pos - np.where(idx > 0, cum_pos[np.maximum(idx - 1, 0)], 0)
+    fp = pos_pred - tp
+    fn = total_pos - tp
+    tn = n - pos_pred - fn
+
+    if callable(metric):
+        best_t, best_v = lo, -np.inf
+        for thr, tp_, fp_, fn_, tn_ in zip(candidates, tp, fp, fn, tn, strict=True):
+            value = metric(int(tp_), int(fp_), int(fn_), int(tn_))
+            if value > best_v:
+                best_t, best_v = float(thr), value
+        return best_t, best_v
+
+    if metric == "f1":
+        values = 2 * tp / (2 * tp + fp + fn + _EPS)
+    elif metric == "accuracy":
+        values = (tp + tn) / (tp + fp + fn + tn + _EPS)
+    elif metric == "precision":
+        values = tp / (tp + fp + _EPS)
+    elif metric == "recall":
+        values = tp / (tp + fn + _EPS)
+    else:
+        raise ValueError(f"unknown metric {metric!r}: use f1/accuracy/precision/recall or a callable")
+    i = int(np.argmax(values))
+    return float(candidates[i]), float(values[i])
 
 
 def ks_stat(y_true, y_score) -> float:
@@ -130,8 +159,13 @@ def psi(expected, actual, bins: int = 10) -> float:
     if exp_arr.size < 2:
         raise ValueError("expected needs at least 2 samples")
     edges = np.unique(np.quantile(exp_arr, np.linspace(0, 1, max(int(bins), 2) + 1)))
-    if edges.size < 2:  # 常数分布：全部落入一箱
-        edges = np.array([edges[0], edges[0] + _EPS])
+    if edges.size < 3:
+        # 离散分数：分位数边界去重后不足以形成多箱（如 0/1 档位），坍缩会让漂移
+        # 完全不可见——回退等距分箱；常数基准再人为撑开两箱
+        edges = np.unique(np.linspace(exp_arr.min(), exp_arr.max(), max(int(bins), 2) + 1))
+    if edges.size < 2:
+        c = float(edges[0])
+        edges = np.array([c - _EPS, c + _EPS])
     edges[0], edges[-1] = -np.inf, np.inf  # 开区间兜底，覆盖 actual 超出基准范围的部分
 
     exp_ratio = np.histogram(exp_arr, bins=edges)[0] / exp_arr.size

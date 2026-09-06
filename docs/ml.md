@@ -38,6 +38,8 @@ X_tr, X_te = xsplit(X, y, test_size=0.2)
 
 # DataFrame 拆 X/y
 X, y = xy(df, "label")          # 多目标: xy(df, ["y1", "y2"])
+# 注意：xy 不提供 df | xy(...) 管道形式 —— pandas 重载了 |（元素级 OR），
+# DataFrame 在左侧时 Pipe.__ror__ 不会被触发
 ```
 
 返回顺序与 `train_test_split` 习惯一致（按数组分组）。无泄漏有测试保障。
@@ -75,8 +77,10 @@ from lautpy.ml import woe_bins, iv_summary, woe_transform, bin_edges
 
 # 分箱并计算每箱 WOE 与 IV（y: 0=好样本, 1=坏样本）
 bins = woe_bins(income, default_flag, n_bins=5)
-# 每箱: {"bin": "[3200.0, 5800.0)", "total": 200, "bad": 12,
-#        "bad_rate": 0.06, "woe": -0.51, "iv": 0.09}
+# 每箱: {"bin": "[3200.0, 5800.0)", "lo": 3200.0, "hi": 5800.0,
+#        "total": 200, "bad": 12, "bad_rate": 0.06, "woe": -0.51, "iv": 0.09}
+# 输入含 NaN 时末尾自动附加 missing 箱（评分卡惯例），woe_transform 会把
+# NaN 编码为 missing 箱的 WOE
 
 # 特征预测力解读惯例：IV > 0.3 强 / 0.1~0.3 中 / < 0.1 弱
 iv = iv_summary(income, default_flag, n_bins=5)
@@ -97,16 +101,18 @@ edges = bin_edges(x, n_bins=10, method="uniform")
 ## 五、多模型对比 xbenchmark
 
 ```python
-from lautpy.ml import xbenchmark
+from lautpy.ml import xbenchmark   # 管道形式；直调用 benchmark_table
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
-df = xbenchmark(
+df = xbenchmark(    # 管道形式（estimators 为 list，不与 pandas 的 | 冲突）
     [("lr", LogisticRegression(max_iter=200)),
      ("rf", RandomForestClassifier(n_estimators=100))],
     X_train, y_train, X_test, y_test,
     n_jobs=3,          # joblib 并行
 )
+# 直调形式：from lautpy.ml import benchmark_table; benchmark_table(models, ...)
+# 注意：并行时原 estimator 不会被 fit（进程内拷贝），结果以返回表为准
 # DataFrame：index=模型名，列 fit_seconds / accuracy / f1_macro / predict_seconds，
 # 按首个指标降序。自定义指标：
 df = xbenchmark(models, ..., scoring={"auc": lambda est, X, y: roc_auc_score(y, est.predict_proba(X)[:, 1])})

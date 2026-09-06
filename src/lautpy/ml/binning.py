@@ -65,6 +65,9 @@ def woe_bins(
 ) -> list[dict[str, Any]]:
     """对单个特征做分箱并计算每箱的 WOE 与 IV 贡献。
 
+    NaN 处理遵循评分卡惯例：缺失样本单独成箱（bin="missing"，排在结果末尾），
+    不与任何数值箱混淆——因此各箱 total 之和恒等于样本数。
+
     Args:
         x: 连续特征。
         y: 0/1 二值标签。
@@ -73,8 +76,9 @@ def woe_bins(
         edges: 自定义切点（含 -inf/+inf 兜底可省略）。
 
     Returns:
-        list[dict]: 每箱一个 dict，键为 bin（区间描述）、total、bad、bad_rate、
-            woe、iv，按箱升序。
+        list[dict]: 每箱一个 dict，键为 bin（区间描述）、lo/hi（数值边界，供
+            woe_transform 与下游使用）、total、bad、bad_rate、woe、iv，按箱升序；
+            输入含 NaN 时末尾附加 missing 箱。
 
     Example::
 
@@ -82,8 +86,9 @@ def woe_bins(
         sum(b["iv"] for b in bins)   # 该特征的 IV
     """
     x, y = _validate(x, y)
+    nan_mask = np.isnan(x)
     if edges is None:
-        edges = bin_edges(x, n_bins=n_bins, method=method)
+        edges = bin_edges(x[~nan_mask], n_bins=n_bins, method=method)
     edges = np.asarray(edges, dtype=float)
     if edges[0] != -np.inf:
         edges = np.concatenate([[-np.inf], edges])
@@ -93,26 +98,33 @@ def woe_bins(
     n_bad = float(np.sum(y == 1)) or _EPS
     n_good = float(np.sum(y == 0)) or _EPS
 
-    result = []
-    for lo, hi in zip(edges[:-1], edges[1:], strict=True):
-        mask = ((x >= lo) & (x <= hi) if hi == np.inf else (x >= lo) & (x < hi))
-        # 统一左闭右开：边界值只归一箱，不重不漏
-        total = int(np.sum(mask))
-        bad = float(np.sum(y[mask] == 1))
+    def _stat(total: int, bad: float) -> dict[str, Any]:
         good = total - bad
         bad_adj = bad if bad else _ADJUST
         good_adj = good if good else _ADJUST
         woe = float(np.log((bad_adj / n_bad) / (good_adj / n_good)))
         iv = float((bad_adj / n_bad - good_adj / n_good) * woe)
-        label = f"[{lo}, {hi})" if hi != np.inf else f"[{lo}, +inf]"
-        result.append({
-            "bin": label,
+        return {
             "total": total,
             "bad": int(bad),
             "bad_rate": round(bad / total, 6) if total else 0.0,
             "woe": round(woe, 6),
             "iv": round(iv, 6),
-        })
+        }
+
+    result = []
+    x_num = x[~nan_mask]
+    y_num = y[~nan_mask]
+    for lo, hi in zip(edges[:-1], edges[1:], strict=True):
+        mask = ((x_num >= lo) & (x_num <= hi) if hi == np.inf else (x_num >= lo) & (x_num < hi))
+        # 统一左闭右开：边界值只归一箱，不重不漏
+        stats = _stat(int(np.sum(mask)), float(np.sum(y_num[mask] == 1)))
+        label = f"[{lo}, {hi})" if hi != np.inf else f"[{lo}, +inf]"
+        result.append({"bin": label, "lo": float(lo), "hi": float(hi), **stats})
+
+    if nan_mask.any():  # 评分卡惯例：缺失样本单独成箱
+        stats = _stat(int(nan_mask.sum()), float(np.sum(y[nan_mask] == 1)))
+        result.append({"bin": "missing", "lo": np.nan, "hi": np.nan, **stats})
     return result
 
 
@@ -124,27 +136,27 @@ def iv_summary(x, y, n_bins: int = 10, method: Literal["quantile", "uniform"] = 
 def woe_transform(x, bins: list[dict[str, Any]]) -> np.ndarray:
     """按 woe_bins 的结果把特征值替换为所在箱的 WOE 值（编码连续特征）。
 
+    向量化实现（np.searchsorted）。NaN 的行为：训练分箱存在 missing 箱
+    （即 woe_bins 输入含 NaN）时映射到 missing 箱的 WOE；否则原样保留 NaN。
+
     Args:
         x: 原始特征值。
         bins: woe_bins 的返回结果。
 
     Returns:
-        np.ndarray: 与 x 等长的 WOE 编码数组；落在最后一箱上边界的值按最后一箱处理。
+        np.ndarray: 与 x 等长的 WOE 编码数组。
     """
-    edges = [_parse_lo(b["bin"]) for b in bins]
-    woes = [b["woe"] for b in bins]
+    los = np.array([b["lo"] for b in bins], dtype=float)
+    woes = np.array([b["woe"] for b in bins], dtype=float)
+    has_missing = bins[-1]["bin"] == "missing"
+
     arr = np.asarray(x, dtype=float).ravel()
-    out = np.empty_like(arr)
-    for i, value in enumerate(arr):
-        idx = len(bins) - 1  # 最后一箱为闭区间兜底
-        for j in range(len(bins) - 1, -1, -1):
-            if value >= edges[j]:
-                idx = j
-                break
-        out[i] = woes[idx]
+    out = np.full(arr.shape, np.nan)
+    valid = ~np.isnan(arr)
+    # 统一左闭右开、末箱闭：searchsorted(right)-1 与分箱规则一致
+    idx = np.searchsorted(los, arr[valid], side="right") - 1
+    idx = np.clip(idx, 0, len(bins) - 1)
+    out[valid] = woes[idx]
+    if has_missing and np.isnan(arr).any():
+        out[np.isnan(arr)] = woes[-1]
     return out
-
-
-def _parse_lo(bin_label: str) -> float:
-    """从 "[lo, hi)" / "(lo, hi]" 区间描述中解析下界。"""
-    return float(bin_label.split(",")[0].lstrip("[("))

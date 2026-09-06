@@ -84,7 +84,11 @@ def model_load(file: str | Path, with_meta: bool = False) -> Any:
 
 
 def model_info(file: str | Path) -> dict:
-    """只读元数据，不反序列化模型本体外的开销（与 model_load 同源）。"""
+    """读取模型的元数据 dict。
+
+    注意：元数据与模型存于同一文件，本函数同样需要完整反序列化 payload——
+    它只是省去你手动解包，**没有性能捷径**。
+    """
     _, meta = model_load(file, with_meta=True)
     return meta
 

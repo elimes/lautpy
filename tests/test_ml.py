@@ -132,7 +132,7 @@ def test_woe_transform_roundtrip():
 def test_xbenchmark_table():
     pd = pytest.importorskip("pandas")
     pytest.importorskip("sklearn")
-    from lautpy.ml.benchmark import xbenchmark
+    from lautpy.ml.benchmark import benchmark_table, xbenchmark
 
     rng = np.random.default_rng(0)
     X = rng.normal(size=(200, 4))
@@ -140,13 +140,14 @@ def test_xbenchmark_table():
     from sklearn.dummy import DummyClassifier
     from sklearn.tree import DecisionTreeClassifier
 
-    df = xbenchmark(
-        [("dummy", DummyClassifier(strategy="most_frequent")),
-         ("tree", DecisionTreeClassifier(random_state=0))],
-        X[:150], y[:150], X[150:], y[150:], n_jobs=1,
-    )
+    models = [("dummy", DummyClassifier(strategy="most_frequent")),
+              ("tree", DecisionTreeClassifier(random_state=0))]
+    df = benchmark_table(models, X[:150], y[:150], X[150:], y[150:], n_jobs=1)
     assert isinstance(df, pd.DataFrame) and len(df) == 2
     assert {"fit_seconds", "accuracy", "f1_macro"} <= set(df.columns)
+    # 管道形式（estimators 为 list，无 __or__，Pipe.__ror__ 正常接管）
+    df2 = models | xbenchmark(X[:150], y[:150], X[150:], y[150:], n_jobs=1)
+    assert len(df2) == 2
 
 
 def test_xsplit_shapes_and_no_leakage():
@@ -203,3 +204,42 @@ def test_model_load_rejects_bare_pickle(tmp_path):
     p.write_bytes(__import__("pickle").dumps({"just": "data"}))
     with pytest.raises(ValueError, match="not a lautpy model_dump"):
         model_load(p)
+
+
+# ---------- 评审回归（2026-09 外部评审） ----------
+
+def test_psi_discrete_scores_not_collapsed():
+    """回归：离散分数下 PSI 曾坍缩为 0，漂移完全不可见。"""
+    from lautpy.ml.metrics import psi
+
+    base = np.array([0.0] * 99 + [1.0])
+    online = np.array([1.0] * 100)
+    value = psi(base, online)
+    assert value > 1.0  # 极端漂移必须可见
+
+
+def test_xy_direct_call():
+    pd = pytest.importorskip("pandas")
+    from lautpy.ml.split import xy
+
+    df = pd.DataFrame({"a": [1, 2], "label": [0, 1]})
+    X, y = xy(df, "label")
+    assert list(X.columns) == ["a"] and list(y) == [0, 1]
+    # 已知限制（见 xy docstring）：DataFrame 在管道左侧时 | 被 pandas
+    # 元素级 OR 接管，无法触发 Pipe.__ror__ —— xy 只提供直接调用
+
+
+def test_woe_bins_nan_missing_bin():
+    """回归：NaN 样本此前静默掉出所有箱，现在单独成 missing 箱。"""
+    from lautpy.ml.binning import woe_bins, woe_transform
+
+    x = np.array([1.0, 2.0, 3.0, 4.0, np.nan])
+    y = np.array([0, 0, 1, 1, 1])
+    bins = woe_bins(x, y, n_bins=2)
+    assert sum(b["total"] for b in bins) == 5  # 不再丢样本
+    assert bins[-1]["bin"] == "missing" and bins[-1]["total"] == 1
+    assert all("lo" in b and "hi" in b for b in bins[:-1])  # 数值边界字段
+
+    encoded = woe_transform(np.array([np.nan, 2.0]), bins)
+    assert not np.isnan(encoded[0])  # NaN 映射到 missing 箱 WOE
+    assert encoded[1] == bins[0]["woe"] or encoded[1] == bins[1]["woe"]

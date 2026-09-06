@@ -33,7 +33,30 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
   new `agent` extra); one `@tool` definition feeds both engines
 - `docs/architecture.md`, `docs/usage.md`, this changelog
 
+### Fixed
+- `ml.psi`: discrete score distributions (e.g. 0/1 grades) collapsed quantile
+  bins into one — drift was reported as 0.0; now falls back to uniform binning
+  (regression test with the exact reviewer case)
+- `agent`: `max_repeats=1` blocked every tool execution (off-by-one); semantics
+  redefined as "allow up to N identical executions, block from the N+1th"
+- `ml.split.xy` / `ml.benchmark` docstrings showed pipe examples that raised
+  TypeError (plain functions); xy now documents the pandas `|` operator
+  conflict, benchmark_table is the direct-call form and xbenchmark is the
+  Pipe wrapper
+- `ml.__init__`: docstring promised lazy/optional deps but submodules imported
+  numpy at top level and `ml.metrics` raised AttributeError; now all six
+  submodules are lazily exported with install-guided ImportErrors
+- `ml.model_info` docstring no longer implies a cheap metadata read (payload
+  is fully deserialized)
+
 ### Changed
+- `ml.binning`: NaN samples get a dedicated `missing` bin (scorecard
+  convention; totals now always sum to sample count), bin dicts carry numeric
+  `lo`/`hi` fields, and `woe_transform` is vectorized via `np.searchsorted`
+- `ml.best_threshold`: O(bins*n) confusion-matrix sweep replaced with a single
+  sort + suffix counts (O(n log n)), identical results
+- `ml.xbenchmark` docstring: predict_seconds includes scoring; parallel fit
+  runs on copies (originals are not fitted)
 - Dev dependencies moved to a PEP 735 `[dependency-groups]` dev group (the `dev`
   extra was removed — use `uv sync`, or `pip install --group dev` with pip>=25.1);
   CI switched to `astral-sh/setup-uv` + `uv sync` with cache

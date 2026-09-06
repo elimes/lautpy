@@ -26,8 +26,8 @@ class Harness:
     Args:
         tool_result_max_chars: 工具结果超过该字符数时截断并告知模型；
             None 关闭。
-        max_repeats: 相同 (工具, 参数) 连续调用达到该次数后，不再执行并
-            回传错误，强制模型换路；None 关闭。
+        max_repeats: 相同 (工具, 参数) 最多执行该次数，其后的重复调用被拦截并
+            回传换路错误（max_repeats=1 即只允许执行一次）；None 关闭。
         approval: 审批门 ``f(name, args) -> bool``；返回 False 时工具不执行，
             向模型回传"被拒绝"。适合危险工具的人工确认。
         max_context_chars: 对话总字符预算；超限后移除工具定义并注入

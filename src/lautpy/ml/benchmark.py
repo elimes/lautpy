@@ -12,9 +12,10 @@ if TYPE_CHECKING:
     import pandas as pd
 
 from lautpy._internal import logger
+from lautpy.pipe import Pipe
 
 
-def xbenchmark(
+def benchmark_table(
     estimators: Sequence[tuple[str, Any]],
     X_train,
     y_train,
@@ -25,8 +26,11 @@ def xbenchmark(
 ) -> "pd.DataFrame":
     """并行训练一组模型并输出指标汇总表（每行一个模型）。
 
-    默认指标：fit_seconds（训练耗时）、predict_seconds（预测耗时）、accuracy、
-    f1_macro。自定义指标传 ``scoring={"名称": f(estimator, X, y) -> float}``。
+    默认指标：fit_seconds（训练耗时）、predict_seconds（预测 + 全部指标打分的总耗时）、
+    accuracy、f1_macro。自定义指标传 ``scoring={"名称": f(estimator, X, y) -> float}``。
+
+    注意：joblib 并行时每个进程持有 estimator 的拷贝——**原对象不会被 fit**，
+    结果一律以返回的行为准；需要复用训练好的模型时改用 n_jobs=1。
 
     Args:
         estimators: ``(名称, 已配置的 estimator)`` 序列，如
@@ -40,8 +44,11 @@ def xbenchmark(
 
     Example::
 
+        # 管道形式（xbenchmark 为 Pipe 包装）
         df = [("lr", LogisticRegression(max_iter=200)),
               ("rf", RandomForestClassifier())] | xbenchmark(X_train, y_train, X_test, y_test)
+        # 直接调用
+        df = benchmark_table(models, X_train, y_train, X_test, y_test)
     """
     try:
         import pandas as pd
@@ -62,6 +69,10 @@ def xbenchmark(
     df = pd.DataFrame(rows).set_index("model")
     first_metric = next(iter(scoring))
     return df.sort_values(first_metric, ascending=False)
+
+
+xbenchmark = Pipe(benchmark_table)
+"""benchmark_table 的管道形式：``models | xbenchmark(X_train, ...)``。"""
 
 
 def _default_scoring() -> dict[str, Callable[[Any, Any, Any], float]]:

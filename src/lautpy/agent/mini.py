@@ -69,7 +69,7 @@ def run_agent_loop(
     messages.extend(history or [])
     messages.append({"role": "user", "content": prompt})
 
-    recent_calls: deque = deque(maxlen=(harness.max_repeats or 1) if harness else 1)
+    recent_calls: deque = deque(maxlen=(harness.max_repeats + 1) if harness and harness.max_repeats else 1)
     force_final = False
 
     for _turn in range(max_turns):
@@ -158,12 +158,13 @@ def _execute_guarded(tool_map: dict[str, Any], tool_call, harness: Any, recent_c
 
     if harness and harness.max_repeats:
         key = (name, arguments)
-        recent_calls.append(key)
         if sum(1 for c in recent_calls if c == key) >= harness.max_repeats:
-            logger.warning(f"tool {name} repeated >= {harness.max_repeats} times, blocking")
-            return (f"Error: '{name}' has been called with identical arguments "
-                    f"{harness.max_repeats} times. The approach is not working — "
-                    f"change strategy.")
+            logger.warning(f"tool {name} has run {harness.max_repeats} times with identical "
+                           f"arguments, blocking further executions")
+            return (f"Error: '{name}' has already been executed {harness.max_repeats} time(s) "
+                    f"with identical arguments and is now blocked. The approach is not "
+                    f"working — change strategy.")
+        recent_calls.append(key)
 
     result = _execute_named(tool_map, name, arguments)
     if harness:
@@ -205,7 +206,7 @@ def run_agent_stream(
     messages.extend(history or [])
     messages.append({"role": "user", "content": prompt})
 
-    recent_calls: deque = deque(maxlen=(harness.max_repeats or 1) if harness else 1)
+    recent_calls: deque = deque(maxlen=(harness.max_repeats + 1) if harness and harness.max_repeats else 1)
 
     for _turn in range(max_turns):
         create_kwargs: dict[str, Any] = {"model": model_name, "messages": messages}

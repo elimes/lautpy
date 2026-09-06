@@ -57,8 +57,26 @@ def test_harness_repeat_detection():
     answer = run_agent("loop", [echo], model="m", client=fake,
                        harness=Harness(max_repeats=2))
     assert answer == "gave up"
-    assert calls["n"] == 1  # 第二次重复起不再执行
+    assert calls["n"] == 2  # 新语义：允许 2 次相同调用，第 3 次被拦截
     assert "change strategy" in fake.calls[3]["messages"][-1]["content"]
+
+
+def test_harness_repeat_once_still_executes_once():
+    """回归：max_repeats=1 时工具应能执行 1 次（旧实现差一，一次都不放行）。"""
+    seen = {"n": 0}
+
+    @tool
+    def echo2(x: int) -> int:
+        """原样返回（独立计数）。"""
+        seen["n"] += 1
+        return x
+
+    loop_resp = _tool_turn("c1", "echo2", '{"x": 1}')
+    fake = FakeClient([loop_resp, _final("stopped")])
+    answer = run_agent("loop", [echo2], model="m", client=fake,
+                       harness=Harness(max_repeats=1), max_turns=2)
+    assert answer == "stopped"
+    assert seen["n"] == 1
 
 
 def test_harness_approval_gate():
