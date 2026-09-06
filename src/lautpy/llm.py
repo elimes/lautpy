@@ -97,7 +97,8 @@ def openai_client(
 
 @lru_cache(maxsize=32)
 def _cached_client(service: str, api_key: str, base_url: str | None) -> Any:
-    kwargs = {"api_key": api_key}
+    # dict[str, Any]：dict[str, str] 解包进 OpenAI 的多参重载会被 mypy 逐参报错
+    kwargs: dict[str, Any] = {"api_key": api_key}
     if base_url:
         kwargs["base_url"] = base_url
     return OpenAI(**kwargs)

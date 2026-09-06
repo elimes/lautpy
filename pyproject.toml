@@ -73,7 +73,9 @@ ignore = [
 testpaths = ["tests"]
 
 [tool.mypy]
-python_version = "3.10"
+# 3.12 而非包下限 3.10：最新 numpy/pandas 的类型存根用了 3.12 语法，
+# 用 3.10 目标解析会直接语法报错；语义差异对 src 的检查影响可忽略
+python_version = "3.12"
 files = ["src/lautpy"]
 ignore_missing_imports = true
 check_untyped_defs = true
