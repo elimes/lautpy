@@ -20,9 +20,11 @@ import itertools
 import json
 import operator
 import sys
+import time
 import warnings
 from collections import Counter, OrderedDict
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from contextlib import contextmanager
 from typing import (
     Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union
 )
@@ -53,6 +55,23 @@ try:
     import sklearn.utils
 except ImportError:
     sklearn = None  # type: ignore
+
+
+# === 日志 ===
+# 优先使用 loguru（零配置、输出美观）；未安装则回退到标准库 logging。
+try:
+    from loguru import logger
+except ImportError:
+    import logging
+
+    logger = logging.getLogger("lautpy")
+    if not logger.handlers:
+        _h = logging.StreamHandler()
+        _h.setFormatter(
+            logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
+        )
+        logger.addHandler(_h)
+        logger.setLevel(logging.INFO)
 
 
 T = TypeVar("T")
@@ -92,8 +111,10 @@ if np is not None:
 
 
 # === 高阶函数（返回惰性迭代器）===
-xmap = Pipe(map)
-xfilter = Pipe(filter)
+# 注意：map/filter 的签名是 (func, iterable)，与管道传入的 (iterable, func) 相反，
+# 因此必须交换参数顺序，否则 data | xmap(f) 会把 f 当成 iterable 报 TypeError。
+xmap = Pipe(lambda iterable, func: map(func, iterable))
+xfilter = Pipe(lambda iterable, func: filter(func, iterable))
 xenumerate = Pipe(enumerate)
 xchain = Pipe(lambda iters: itertools.chain.from_iterable(iters))
 xzip = Pipe(zip)
@@ -269,6 +290,24 @@ def xsse_parser(
 @Pipe
 def xtqdm(iterable, desc: Optional[str] = None):
     return tqdm(iterable, desc=desc)
+
+
+# === 计时 ===
+@contextmanager
+def timer(name: str = "timer"):
+    """上下文管理器：计时代码块，结束时通过 logger 输出耗时。
+
+    用法::
+
+        with timer('LOG'):
+            logger.info("打印一条log所花费的时间")
+    """
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        elapsed = time.perf_counter() - start
+        logger.info(f"[{name}] 耗时: {elapsed:.4f}s")
 
 
 # === 兼容性提示 ===
