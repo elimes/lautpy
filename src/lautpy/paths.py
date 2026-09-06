@@ -6,7 +6,6 @@
 
 import json
 import pickle
-import sys
 from pathlib import Path
 from typing import Any, List, Optional, Union
 

@@ -1,0 +1,48 @@
+# Changelog
+
+All notable changes to lautpy are documented here. Versions follow the semver-ish `MAJOR.MINOR.PATCH` scheme while in 0.0.x.
+
+## [Unreleased]
+
+### Changed
+- Unified logger fallback in a single internal module (`_internal.py`)
+- `xThreadPoolExecutor`/`xProcessPoolExecutor` share one implementation
+- `xsse_parser` logs JSON decode errors through the package logger instead of raw `print`
+- `notice`: long messages are now split by UTF-8 byte length (CJK-safe), never mid-character
+- Version number is now sourced solely from `.data/VERSION` (setuptools dynamic version); `release.sh` no longer patches pyproject.toml
+- Added CI test workflow (Python 3.8–3.13 matrix + ruff) alongside the publish workflow
+
+### Added
+- `docs/architecture.md`, `docs/usage.md`, this changelog
+
+## [0.0.6.0] — metadata release
+
+- `requires-python >= 3.8` (was a false `>= 3.7`); added 3.13 classifier
+- Optional dependencies exposed as extras: `retry` / `llm` / `yaml` / `ml` / `numpy` / `all` / `dev`
+- `numpy` moved from a hard dependency to an extra (the code already treats it as optional)
+- PEP 639 SPDX license metadata, `py.typed` marker, keywords, Development Status / Typing classifiers
+- Author metadata unified; third-party references pruned from source docstrings
+
+## [0.0.5.0]
+
+- `decorators.py`: `retrying` (tenacity wrapper), `timeout`, `background_task`, `ratelimit`, `singleton`, `synchronized`, `tryer`
+- `notice.py`: WeCom/Feishu webhook senders (env-var URLs, byte-safe chunking came later)
+- `llm.py`: OpenAI-compatible client factory resolving `<SVC>_API_KEY` / `<SVC>_BASE_URL`
+- `paths`: `pkl_dump`/`pkl_load`; `apis.tools`: `download`, `is_open`
+
+## [0.0.4.0]
+
+- `xUniquePlus` (pickle-fallback dedup), `xBloomFilter` (stdlib Bloom filter), `xHashBins` (stable hash bucketing) — all dependency-free rewrites
+- `lautpy.apis` layer: `get_api_key` (env-only keys), `request` (timeout + retry), keyless tools (`shorten_url`, `data2qrcodeurl`), NiuTrans translate via `NIUTRANS_API_KEY`
+- Guard test: CI fails if a hardcoded key ever lands in `apis/` source
+
+## [0.0.3.0]
+
+- `pipe.py`: eager variants (`xmap_`/`xfilter_`/`xchain_`/`xdrop`/`xdrop_`), dict helpers (`xchain_dict`/`xDictValues`/`xDictRemove`/`xgetitem`), `xCounterUpdate`, `xstack`, `xAsyncio`, `xnext`
+- New modules: `dates`, `paths`, `hashing` (md5/murmurhash/ABTest)
+- `__all__` whitelist to stop namespace pollution
+- pytest suite introduced
+
+## [0.0.2.4]
+
+- Fixed crash on `import lautpy` (version detection, stale template header)

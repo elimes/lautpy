@@ -39,7 +39,15 @@ def test_wecom_list_content_joined(capture):
 
 def test_wecom_long_content_split(capture):
     notice.wecom("x" * 9000, webhook_url="http://hook")
-    assert len(capture) == 3  # 4000 + 4000 + 1000
+    assert len(capture) == 3  # 3800 + 3800 + 1400 bytes
+
+
+def test_wecom_cjk_split_is_byte_safe(capture):
+    text = "测" * 3000  # 9000 UTF-8 bytes; a char-based splitter would overflow 4096B
+    notice.wecom(text, webhook_url="http://hook")
+    assert len(capture) >= 3
+    joined = "".join(c["json"]["markdown"]["content"] for c in capture)
+    assert joined == text  # no characters lost or split
 
 
 def test_feishu_escapes_angle_brackets(capture):

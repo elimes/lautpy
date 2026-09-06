@@ -31,9 +31,23 @@ def _feishu_url(webhook_url: Optional[str]) -> str:
     return key if key.startswith("http") else _FEISHU_ENDPOINT.format(key=key)
 
 
-def _chunks(content: str, size: int = 4000) -> List[str]:
-    """WeCom caps text at 4096 bytes; split defensively."""
-    return [content[i : i + size] for i in range(0, len(content), size)] or [""]
+def _chunks(content: str, max_bytes: int = 3800) -> List[str]:
+    """Split by UTF-8 *bytes* (WeCom/Feishu cap at ~4096 bytes, and CJK chars
+    cost 3 bytes each — splitting by character count would still overflow).
+    Never splits inside a multi-byte character.
+    """
+    encoded = content.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return [content]
+    parts = []
+    start = 0
+    while start < len(encoded):
+        end = min(start + max_bytes, len(encoded))
+        while end < len(encoded) and (encoded[end] & 0xC0) == 0x80:  # inside a UTF-8 sequence
+            end -= 1
+        parts.append(encoded[start:end].decode("utf-8"))
+        start = end
+    return parts
 
 
 def wecom(

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lautpy"
-version = "0.0.6.0"
 description = "Lightweight Python toolkit: pipe-style data processing, date/path/hash utils, decorators, webhooks and OpenAI-compatible clients"
+dynamic = ["version"]
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE.txt"]
@@ -45,6 +45,9 @@ Homepage = "https://github.com/elimes/lautpy"
 Repository = "https://github.com/elimes/lautpy"
 Issues = "https://github.com/elimes/lautpy/issues"
 
+[tool.setuptools.dynamic]
+version = {file = ".data/VERSION"}
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
@@ -53,3 +56,17 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 lautpy = ["py.typed"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = [
+    "E501",  # 长行主要出现在中文注释/docstring，由人判断
+    "E741",  # 保留单字母变量（管道示例常见 l/I）
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

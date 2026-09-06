@@ -21,17 +21,12 @@ import threading
 import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Tuple, Type, TypeVar
+
+from lautpy._internal import logger
 
 try:
-    from loguru import logger
-except ImportError:  # pragma: no cover - pipe.py already provides the fallback
-    import logging
-
-    logger = logging.getLogger("lautpy")
-
-try:
-    from tenacity import retry, retry_if_exception, retry_if_result, stop_after_attempt, wait_exponential
+    from tenacity import retry, stop_after_attempt, wait_exponential
 except ImportError:
     retry = None  # type: ignore
 

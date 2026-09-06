@@ -2,6 +2,8 @@
 
 轻量的 Python 工具集：管道式数据处理 + 日期/路径/哈希等常用工具函数。核心零强制依赖，第三方库（numpy/pandas/scikit-learn 等）按需可选。
 
+> 📖 **文档**：[快速上手 & 各模块用法](docs/usage.md) ｜ [架构说明（维护者向）](docs/architecture.md) ｜ [更新日志](CHANGELOG.md)
+
 ## Install
 
 ```bash

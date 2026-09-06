@@ -18,21 +18,16 @@ import functools
 import itertools
 import json
 import operator
-import sys
 import time
-import warnings
 from collections import Counter, OrderedDict
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from contextlib import contextmanager
-from typing import (
-    Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union
-)
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union
 
-# 第三方依赖（请确保已安装：pip install tqdm numpy pandas joblib scikit-learn）
+# 可选依赖：缺失时对应管道函数不存在，其余功能不受影响（见 docs/architecture.md）
 try:
     from tqdm.auto import tqdm
 except ImportError:
-    warnings.warn("tqdm not installed. Progress bars will be disabled.", ImportWarning)
     tqdm = lambda x, *args, **kwargs: x  # noqa: E731
 
 try:
@@ -57,21 +52,8 @@ except ImportError:
 
 
 # === 日志 ===
-# 优先使用 loguru（零配置、输出美观）；未安装则回退到标准库 logging。
-try:
-    from loguru import logger
-except ImportError:
-    import logging
-
-    logger = logging.getLogger("lautpy")
-    if not logger.handlers:
-        _h = logging.StreamHandler()
-        _h.setFormatter(
-            logging.Formatter("%(asctime)s | %(levelname)s | %(name)s | %(message)s")
-        )
-        logger.addHandler(_h)
-        logger.setLevel(logging.INFO)
-
+# 统一走 _internal（loguru 优先，未安装则回退标准库 logging）
+from lautpy._internal import logger
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -317,6 +299,20 @@ if pd is not None:
 
 
 # === 并发执行 ===
+def _pool_map(executor_cls, iterable, func, max_workers: int, desc: str) -> list:
+    """Shared implementation for the thread/process pool pipes."""
+    total = len(iterable) if hasattr(iterable, "__len__") else None
+    if total == 1:
+        max_workers = 1
+
+    if max_workers > 1:
+        with executor_cls(max_workers=max_workers) as executor:
+            if total is not None:
+                return list(tqdm(executor.map(func, iterable), total=total, desc=desc))
+            return list(executor.map(func, iterable))
+    return list(map(func, iterable))
+
+
 if joblib is not None:
     __all__ += ["xJobs"]
 
@@ -334,40 +330,16 @@ if joblib is not None:
 def xThreadPoolExecutor(
     iterable, func, max_workers: int = 5, desc: str = "Processing"
 ):
-    """Thread-based parallel map with progress bar."""
-    total = len(iterable) if hasattr(iterable, "__len__") else None
-    if total == 1:
-        max_workers = 1
-
-    if max_workers > 1:
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            if total is not None:
-                results = list(tqdm(executor.map(func, iterable), total=total, desc=desc))
-            else:
-                results = list(executor.map(func, iterable))
-        return results
-    else:
-        return list(map(func, iterable))
+    """Thread-based parallel map with progress bar (I/O-bound tasks)."""
+    return _pool_map(ThreadPoolExecutor, iterable, func, max_workers, desc)
 
 
 @Pipe
 def xProcessPoolExecutor(
     iterable, func, max_workers: int = 5, desc: str = "Processing"
 ):
-    """Process-based parallel map with progress bar."""
-    total = len(iterable) if hasattr(iterable, "__len__") else None
-    if total == 1:
-        max_workers = 1
-
-    if max_workers > 1:
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            if total is not None:
-                results = list(tqdm(executor.map(func, iterable), total=total, desc=desc))
-            else:
-                results = list(executor.map(func, iterable))
-        return results
-    else:
-        return list(map(func, iterable))
+    """Process-based parallel map with progress bar (CPU-bound tasks)."""
+    return _pool_map(ProcessPoolExecutor, iterable, func, max_workers, desc)
 
 
 # === 异步并发 ===
@@ -430,7 +402,7 @@ def xsse_parser(
         try:
             parsed.append(json.loads(content))
         except json.JSONDecodeError as e:
-            print(f"JSON decode error in SSE line: {content[:50]}... ({e})", file=sys.stderr)
+            logger.warning(f"SSE line JSON decode error: {content[:50]}... ({e})")
     return parsed
 
 
@@ -462,14 +434,3 @@ def timer(name: str = "timer"):
     finally:
         elapsed = time.perf_counter() - start
         logger.info(f"[{name}] 耗时: {elapsed:.4f}s")
-
-
-# === 兼容性提示 ===
-if np is None:
-    warnings.warn("NumPy not installed. xarray is unavailable.", ImportWarning)
-if pd is None:
-    warnings.warn("Pandas not installed. xconcat_df is unavailable.", ImportWarning)
-if joblib is None:
-    warnings.warn("Joblib not installed. xJobs is unavailable.", ImportWarning)
-if sklearn is None:
-    warnings.warn("Scikit-learn not installed. xshuffle is unavailable.", ImportWarning)

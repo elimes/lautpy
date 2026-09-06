@@ -1,12 +1,17 @@
+import importlib.util
 import threading
 import time
 
 import pytest
 
-import importlib.util
-
 from lautpy.decorators import (
-    background_task, ratelimit, retrying, singleton, synchronized, timeout, tryer,
+    background_task,
+    ratelimit,
+    retrying,
+    singleton,
+    synchronized,
+    timeout,
+    tryer,
 )
 
 has_tenacity = importlib.util.find_spec("tenacity") is not None

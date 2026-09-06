@@ -1,11 +1,23 @@
-import pytest
 
 from collections import Counter
 
 from lautpy.pipe import (
-    Pipe, xchain_, xchain_dict, xCounterUpdate, xDictRemove, xDictValues,
-    xdrop, xdrop_, xfilter_, xgetitem, xlist, xmap_, xnext, xsse_parser,
-    xsort, xAsyncio,
+    Pipe,
+    xAsyncio,
+    xchain_,
+    xchain_dict,
+    xCounterUpdate,
+    xDictRemove,
+    xDictValues,
+    xdrop,
+    xdrop_,
+    xfilter_,
+    xgetitem,
+    xlist,
+    xmap_,
+    xnext,
+    xsort,
+    xsse_parser,
 )
 
 
@@ -46,7 +58,6 @@ def test_xnext_and_xsort():
 
 
 def test_xasyncio():
-    import asyncio
 
     async def job(i):
         return i * 2
