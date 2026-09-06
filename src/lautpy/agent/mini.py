@@ -71,7 +71,7 @@ def run_agent_loop(
         if message.tool_calls:  # 工具调用轮：执行并回填，继续下一轮
             messages.append(_assistant_message(message))
             for tc in message.tool_calls:
-                messages.append({
+                messages.append({  # noqa: PERF401 - 逐个执行工具有副作用，保持显式循环
                     "role": "tool",
                     "tool_call_id": tc.id,
                     "content": _execute(tool_map, tc),
@@ -169,7 +169,7 @@ def run_agent_stream(
             } for slot in tool_calls.values()],
         })
         for slot in tool_calls.values():
-            messages.append({
+            messages.append({  # noqa: PERF401 - 逐个执行工具有副作用，保持显式循环
                 "role": "tool",
                 "tool_call_id": slot["id"],
                 "content": _execute_named(tool_map, slot["name"], slot["arguments"]),

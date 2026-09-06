@@ -25,20 +25,19 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 requires-python = ">=3.10"
-dependencies = [
-    "requests",
-]
+dependencies = []
 
 [project.optional-dependencies]
+http = ["requests"]  # notice / apis 需要
 retry = ["tenacity>=8.0"]
 llm = ["openai>=1.0"]
 yaml = ["pyyaml"]
 ml = ["scikit-learn"]
 numpy = ["numpy"]
 agent = ["langchain>=1.0", "langchain-openai>=1.0"]
-all = ["tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy",
+all = ["requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy",
        "langchain>=1.0", "langchain-openai>=1.0"]
-dev = ["pytest", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy",
+dev = ["pytest", "requests", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy",
        "langchain>=1.0", "langchain-openai>=1.0"]
 
 [project.urls]
@@ -63,10 +62,11 @@ line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "UP"]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "C4", "PERF"]
 ignore = [
     "E501",  # 长行主要出现在中文注释/docstring，由人判断
     "E741",  # 保留单字母变量（管道示例常见 l/I）
+    "SIM117",  # 嵌套 with 在流式下载等场景更清晰
 ]
 
 [tool.pytest.ini_options]

@@ -7,7 +7,12 @@
 ## Install
 
 ```bash
-pip install -U lautpy
+pip install -U lautpy                 # 核心：零强制依赖
+pip install -U "lautpy[all]"          # 全部可选依赖（requests/tqdm/numpy 等）
+
+# 按需选装
+pip install -U "lautpy[http]"         # notice / apis（requests）
+pip install -U "lautpy[agent]"        # LangChain 引擎
 ```
 
 ## Pipe 管道工具
@@ -96,7 +101,7 @@ shorten_url("https://example.com/...")   # 无需密钥的短链/二维码工具
 
 ## 设计约定
 
-- `import lautpy` 零第三方强制依赖，无导入副作用
+- `import lautpy` 零第三方强制依赖（requests 属 `http` extra，notice/apis 惰性加载），无导入副作用
 - 第三方依赖的管道函数在库缺失时自动不可用，不影响其余功能
 - `from lautpy.pipe import *` 仅导出公共 API（`__all__`），不泄漏实现细节
 

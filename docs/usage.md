@@ -5,12 +5,13 @@
 ## 安装
 
 ```bash
-pip install lautpy                 # 核心功能（仅依赖 requests）
+pip install lautpy                 # 核心功能（零强制依赖）
 pip install "lautpy[all]"          # 全部可选依赖（tenacity/openai/pyyaml/scikit-learn/numpy）
 
 # 或按需选装
 pip install "lautpy[retry]"        # 重试装饰器（tenacity）
 pip install "lautpy[llm]"          # LLM 客户端（openai）
+pip install "lautpy[http]"         # notice / apis（requests）
 pip install "lautpy[yaml]"         # yaml 配置读取
 pip install "lautpy[ml]"           # murmurhash/ABTest/shuffle（scikit-learn）
 ```

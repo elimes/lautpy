@@ -70,17 +70,14 @@ def wecom(
     if isinstance(content, (list, tuple)):
         content = "\n".join(map(str, content))
     content = f"**{title}**\n{content}".strip() if title else content.strip()
-    payload = {
-        "msgtype": "markdown",
-        "markdown": {"content": content},
-    }
+    markdown: dict[str, Any] = {"content": content}
     if mentioned_mobile_list:
-        payload["markdown"]["mentioned_mobile_list"] = mentioned_mobile_list  # type: ignore[index]
+        markdown["mentioned_mobile_list"] = mentioned_mobile_list
 
     results = {}
-    for i, chunk in enumerate(_chunks(payload["markdown"]["content"])):  # type: ignore[index]
-        body = dict(payload)
-        body["markdown"] = {"content": chunk}
+    base_markdown = markdown  # 含 mentioned_mobile_list，分段时须保留
+    for i, chunk in enumerate(_chunks(markdown["content"])):
+        body = {"msgtype": "markdown", "markdown": {**base_markdown, "content": chunk}}
         resp = request("POST", _wecom_url(webhook_url), json=body)
         results[f"part{i}"] = resp.json()
     return results

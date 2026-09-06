@@ -73,7 +73,7 @@ __all__ = [
     # 并发
     "xThreadPoolExecutor", "xProcessPoolExecutor", "xAsyncio",
     # 调试与输出
-    "xprint", "xsse_parser", "xnext", "xtqdm",
+    "xprint", "xsse_parser_", "xsse_parser", "xnext", "xtqdm",
     # 计时
     "timer",
     # 日志（README 示例依赖，保留导出）
@@ -180,9 +180,11 @@ def xsort(iterable, reverse: bool = False):
 def xgroup(iterable, step: int = 3):
     """按固定大小分组：data | xgroup(2) → [[a, b], [c, d], ...]。
 
-    有 __len__ 的输入返回 list 的 list；无 __len__ 的迭代器返回生成器。
+    序列类型（list/tuple/str/bytes/range）返回 list 的 list；其余输入
+    （生成器/迭代器/set/dict 等）走迭代分支返回生成器。
     """
-    if hasattr(iterable, "__len__"):
+    # 显式类型白名单而非 __getitem__ 探测：dict 也有 __getitem__ 但不支持切片
+    if isinstance(iterable, (list, tuple, str, bytes, range)):
         n = len(iterable)
         return [iterable[i : i + step] for i in range(0, n, step)]
     else:
@@ -389,7 +391,7 @@ def xProcessPoolExecutor(
 # === 异步并发 ===
 @Pipe
 def xAsyncio(tasks, return_exceptions: bool = False):
-    """并发执行一批协程并收集结果。
+    """并发执行一批协程并收集结果（仅在无运行中事件循环时可用）。
 
     Usage::
 
@@ -398,8 +400,22 @@ def xAsyncio(tasks, return_exceptions: bool = False):
             return i
 
         [job(i) for i in range(10)] | xAsyncio
+
+    Raises:
+        RuntimeError: 已在事件循环内（Jupyter/异步框架）。此时请直接
+            ``await asyncio.gather(*tasks)``，或先安装并应用 nest_asyncio。
     """
     import asyncio
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        pass  # 无运行中循环，asyncio.run 可用
+    else:
+        raise RuntimeError(
+            "xAsyncio cannot run inside a running event loop (e.g. Jupyter). "
+            "Use `await asyncio.gather(*tasks)` directly, or apply nest_asyncio first."
+        )
 
     async def _gather():
         return await asyncio.gather(*tasks, return_exceptions=return_exceptions)
@@ -429,12 +445,14 @@ def xprint(iterable, end: str = "\n", desc: str = "Print"):
 
 # === 实用工具 ===
 @Pipe
-def xsse_parser(
+def xsse_parser_(
     lines: Iterable[str],
     prefix: str = "data:",
     skip_substrings: list[str] | None = None,
 ):
     """解析 SSE（Server-Sent Events）行为 JSON 列表（LLM 流式输出常用）。
+
+    尾部下划线符合"立即求值"命名约定（返回 list）。
 
     Args:
         lines: 文本行序列。
@@ -457,6 +475,9 @@ def xsse_parser(
         except json.JSONDecodeError as e:
             logger.warning(f"SSE line JSON decode error: {content[:50]}... ({e})")
     return parsed
+
+
+xsse_parser = xsse_parser_  # 兼容别名（旧命名未带急切后缀，逐步迁移到 xsse_parser_）
 
 
 # === 进度条快捷方式 ===

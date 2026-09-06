@@ -72,9 +72,7 @@ def retrying(
             exc = outcome.exception()
             if ignored_exceptions and isinstance(exc, ignored_exceptions):
                 return False
-            if isinstance(exc, _NON_RETRYABLE):
-                return False
-            return True
+            return not isinstance(exc, _NON_RETRYABLE)
         return bool(retry_on_result(outcome.result())) if retry_on_result else False
 
     def decorator(func: F) -> F:
@@ -165,16 +163,18 @@ def ratelimit(calls: int, period: float) -> Callable[[F], F]:
         raise ValueError("calls and period must be positive")
 
     def decorator(func: F) -> F:
-        lock = threading.Lock()
+        # Condition.wait 会释放锁：等待中的线程并行休眠、被唤醒后重新竞争，
+        # 避免"持锁睡眠"导致 N 个线程的等待时间串行叠加
+        condition = threading.Condition()
         timestamps: deque = deque()
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            with lock:
+            with condition:
                 while len(timestamps) >= calls:
                     remaining = timestamps[0] + period - time.monotonic()
                     if remaining > 0:
-                        time.sleep(remaining)
+                        condition.wait(remaining)
                     else:
                         timestamps.popleft()
                 timestamps.append(time.monotonic())

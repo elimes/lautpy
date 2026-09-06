@@ -8,9 +8,15 @@
 import os
 import threading
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+try:
+    import requests
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+except ImportError as e:  # requests 自 0.0.8.0 起为可选依赖（http extra）
+    raise ImportError(
+        'requests is required for lautpy.apis / lautpy.notice: '
+        'pip install "lautpy[http]"'
+    ) from e
 
 DEFAULT_TIMEOUT = 30  # seconds
 

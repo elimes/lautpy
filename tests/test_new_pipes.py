@@ -16,7 +16,7 @@ def test_xuniqueplus_key_fn():
 
 
 def test_xbloomfilter_pipe():
-    bloom = [i for i in range(100)] | xBloomFilter(capacity=1000)
+    bloom = list(range(100)) | xBloomFilter(capacity=1000)
     assert 42 in bloom and "nope" not in bloom
 
 

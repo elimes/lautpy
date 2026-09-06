@@ -38,11 +38,12 @@ def _load_structured(text_or_bytes) -> dict:
 def file2json(path: str | Path) -> dict:
     """读取 .json / .yml / .yaml 配置文件为 dict。
 
+    错误策略分两层：路径无效/扩展名不支持 → 返回空 dict（适合探测可选
+    配置）；**内容损坏 → 抛原始异常**（数据坏了必须立刻响，静默吞错会让
+    配置错误晚暴露）。
+
     Args:
         path: 配置文件路径。
-
-    Returns:
-        dict: 解析结果；路径无效或扩展名不支持时返回空 dict（不抛异常）。
     """
     p = Path(path)
     if not p.is_file():

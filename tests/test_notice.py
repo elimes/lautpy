@@ -67,3 +67,12 @@ def test_feishu_missing_webhook_url(monkeypatch):
     monkeypatch.delenv("FEISHU_WEBHOOK_URL", raising=False)
     with pytest.raises(MissingAPIKeyError):
         notice.feishu("hi")
+
+
+def test_wecom_mentions_survive_chunking(capture):
+    """回归：分段发送时 mentioned_mobile_list 不能从第二段起丢失。"""
+    notice.wecom("x" * 9000, title="t", mentioned_mobile_list=["@all"],
+                 webhook_url="http://hook")
+    assert len(capture) >= 2
+    for call in capture:
+        assert call["json"]["markdown"]["mentioned_mobile_list"] == ["@all"]

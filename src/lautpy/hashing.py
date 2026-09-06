@@ -60,12 +60,14 @@ def murmurhash(
 class ABTest:
     """基于哈希分桶的 AB 实验分流：同一用户永远落在同一桶，结果稳定可复现。
 
-    命中规则：murmurhash(f"{user_id}:{expid}") % bins 落在 ranger 区间内。
+    命中规则：murmurhash(f"{user_id}:{expid}") % bins 的桶号落在 ranger
+    区间内。**ranger 是左闭右开的桶号区间（语义同 range()）**：
+    (0, 99) 覆盖 0~98 号桶共 99 个，做流量配比时注意差一问题。
 
     Example::
 
         ab = ABTest(expid='10001', ranger=(0, 99), bins=100)
-        if ab.is_hit(user_id):   # 0~99 号桶 = 1% 流量
+        if ab.is_hit(user_id):   # 0~98 号桶 ≈ 99% 流量
             ...
     """
 
@@ -138,13 +140,14 @@ class BloomFilter:
         return ((h1 + i * h2) % self._m for i in range(self._k))
 
     def add(self, value) -> bool:
-        """添加元素。
+        """添加元素（探测与置位复用同一组哈希位，哈希只算一次）。
 
         Returns:
             bool: False 表示该元素可能已存在（重复添加）；True 表示首次加入。
         """
-        was_present = value in self
-        for idx in self._hashes(value):
+        indexes = list(self._hashes(value))
+        was_present = all(self._bits[i >> 3] >> (i & 7) & 1 for i in indexes)
+        for idx in indexes:
             self._bits[idx >> 3] |= 1 << (idx & 7)
         if not was_present:
             self._count += 1

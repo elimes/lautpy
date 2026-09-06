@@ -32,7 +32,7 @@ def _schema_from_hints(func: Callable) -> dict[str, Any]:
         if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
             continue
         hint = hints.get(name, str)
-        json_type = _TYPE_MAP.get(hint, None)
+        json_type = _TYPE_MAP.get(hint)
         origin = getattr(hint, "__origin__", None)  # List[str] 等泛型的容器类型
         if json_type is None and origin is not None:
             json_type = _TYPE_MAP.get(origin, "string")

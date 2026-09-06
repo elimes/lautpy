@@ -27,12 +27,12 @@ lautpy/
 │       ├── client.py           # 基建：get_api_key（环境变量密钥）+ request（超时/重试）
 │       ├── tools.py            # 无密钥工具：shorten_url / data2qrcodeurl / download / is_open
 │       └── niutrans.py         # 翻译 API（示范新 API 的接入模式）
-├── tests/                      # pytest 测试（81 用例，可选依赖缺失自动 skip）
+├── tests/                      # pytest 测试（87 用例，可选依赖缺失自动 skip）
 ├── docs/                       # 本文档 + 使用指南
 ├── CHANGELOG.md                # 版本变更记录（Unreleased 段随发版归档）
 ├── .data/VERSION               # 唯一版本源（pyproject 动态读取）
 ├── .github/workflows/
-│   ├── test.yml                # CI：3.10–3.13 矩阵测试 + ruff + mypy
+│   ├── test.yml                # CI：3.10–3.13 矩阵测试 + ruff(E/F/W/I/B/UP/SIM/C4/PERF) + mypy
 │   └── publish.yml             # tag 触发 → PyPI（trusted publishing）
 └── pyproject.toml              # PEP 639 元数据 + extras + ruff/pytest 配置
 ```
@@ -51,7 +51,9 @@ dates paths hashing decorators（tenacity 可选） notice ──→ apis.client
                                      langchain_agent 走 langchain 1.x，需 agent extra）
 ```
 
-- **只有 `requests` 是硬依赖**；其余第三方库全部 try/except 可选化
+- **零强制依赖**：`dependencies = []`。requests 属 `http` extra，`apis`/`notice`
+  通过 PEP 562 `__getattr__` 惰性挂载（`import lautpy` 不触发 requests 导入）；
+  其余第三方库同样全部 try/except 可选化
 - `pipe` 里的 numpy/pandas 系管道函数在库缺失时**整个不存在**（连 `__all__` 都不注册），其余功能不受影响
 
 ## 三、设计原则（改动代码前先读）

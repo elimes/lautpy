@@ -20,6 +20,17 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 - `docs/architecture.md`, `docs/usage.md`, this changelog
 
 ### Changed
+- **Zero mandatory dependencies**: `requests` moved to the new `http` extra;
+  `lautpy.apis` / `lautpy.notice` are lazily mounted (PEP 562) so
+  `import lautpy` loads no third-party packages
+- `ratelimit` waits via `threading.Condition` (lock released while waiting —
+  parallel waiters no longer serialize behind a sleeping holder)
+- `wecom`: `mentioned_mobile_list` preserved across message chunks (regression
+  covered); `xgroup` accepts set/dict via explicit sliceable-type check;
+  `BloomFilter.add` hashes once per add (was twice); `ABTest` docs state the
+  half-open ranger semantics; `xAsyncio` raises a guided error inside a
+  running event loop; `xsse_parser_` name matches the eager-suffix convention
+  (`xsse_parser` kept as alias); ruff rule groups SIM/C4/PERF enabled
 - **Python floor raised to >= 3.10**; typing modernized package-wide (`Optional[X]` → `X | None`, `List[X]` → `list[X]`, collections.abc imports); 3.7 importlib_metadata fallback removed; CI matrix now 3.10–3.13; ruff target py310 with UP rules enabled
 - Unified logger fallback in a single internal module (`_internal.py`)
 - `xThreadPoolExecutor`/`xProcessPoolExecutor` share one implementation
