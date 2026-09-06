@@ -98,11 +98,15 @@ def run_agent_loop(
 
         if message.tool_calls:  # 工具调用轮：执行并回填，继续下一轮
             messages.append(_assistant_message(message))
-            for tc in message.tool_calls:
-                messages.append({  # noqa: PERF401 - 逐个执行工具有副作用，保持显式循环
+            for tc in message.tool_calls:  # noqa: PERF401 - 逐个执行工具有副作用，保持显式循环
+                if force_final:  # 预算超限后模型仍幻觉出工具调用：不执行，坚持逼最终回答
+                    content = "Error: context budget exceeded — tool execution is disabled. Give your final answer now."
+                else:
+                    content = _execute_guarded(tool_map, tc, harness, recent_calls)
+                messages.append({
                     "role": "tool",
                     "tool_call_id": tc.id,
-                    "content": _execute_guarded(tool_map, tc, harness, recent_calls),
+                    "content": content,
                 })
             continue
 

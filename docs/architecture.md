@@ -72,6 +72,7 @@ dates paths hashing decorators（tenacity 可选） notice ──→ apis.client
 3. **密钥只走环境变量**：任何 API key / webhook URL 一律 `get_api_key()` 现场解析（`<SVC>_API_KEY`），源码零硬编码。`tests/test_apis.py` 有守护测试扫描，写死密钥会让 CI 失败。
 4. **star 导出走 `__all__` 白名单**：`from lautpy.pipe import *` 只暴露公共 API，`np`/`itertools`/`json` 等实现细节不泄漏。新增公开函数必须同步登记 `__all__`。
 5. **Python 3.10 与类型约定**：全面使用 PEP 604 联合类型（`str | None`）与内建泛型（`list[str]`），`typing` 只保留 `Any`/`TypeVar`；ruff（target py310 + UP 规则集）守护，旧写法过不了 CI。包带 `py.typed`，类型标注对下游可见。
+6. **范围治理**：当前五个域（pipe 核心 / agent / ml / web API / 通知）即包的边界。**新领域进入前必须回答"为什么它属于 lautpy 而不是独立包"**——答案应包含"与现有域共享工具/约定"，否则请做成独立项目。每加一个域都在稀释"轻量工具集"的定位。
 
    > ⚠️ 维护者提示：ruff 的 UP007 unsafe 修复会把 `Optional[threading.Lock]`
    > 改写成 `threading.Lock | None`——但 `threading.Lock` 是工厂函数而非类，

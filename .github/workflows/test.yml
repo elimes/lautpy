@@ -25,8 +25,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install ".[dev]"
 
-      - name: Run tests
-        run: pytest tests -q
+      - name: Run tests (with coverage)
+        run: |
+          pip install pytest-cov
+          pytest tests -q --cov=lautpy --cov-report=term-missing
 
       - name: Lint (ruff)
         run: |

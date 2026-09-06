@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lautpy"
-description = "Lightweight Python toolkit: pipe-style data processing, date/path/hash utils, decorators, webhooks and OpenAI-compatible clients"
+description = "Lightweight Python toolkit: pipe utilities, agent harness (dual engines, tools, guards), ML glue (metrics, WOE/IV binning, benchmark), webhooks and OpenAI-compatible clients"
 dynamic = ["version"]
 readme = "README.md"
 license = "Apache-2.0"
@@ -12,7 +12,7 @@ license-files = ["LICENSE.txt"]
 authors = [
     {name = "elimes"},
 ]
-keywords = ["utils", "pipe", "functional", "decorators", "retry", "webhook", "openai", "toolkit"]
+keywords = ["utils", "pipe", "functional", "decorators", "retry", "webhook", "openai", "agent", "harness", "llm", "machine-learning", "woe", "iv", "bloom-filter", "ab-test", "toolkit"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",

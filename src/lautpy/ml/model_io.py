@@ -2,6 +2,9 @@
 """模型存取：带元数据的 joblib/pickle 序列化。
 
 joblib 可用时优先（对 numpy 大数组更友好），否则回退 pickle。
+
+⚠️ 安全提示：反序列化（pickle/joblib）等价于执行任意代码——**只加载
+可信来源的模型文件**，不要 load 来路不明的 .pkl。
 """
 
 import pickle
@@ -61,6 +64,8 @@ def model_load(file: str | Path, with_meta: bool = False) -> Any:
 
     Raises:
         ValueError: 文件不是本模块的 payload 格式（如裸 pickle 的模型）。
+
+    ⚠️ 反序列化等于执行任意代码，只加载可信来源的文件。
     """
     p = Path(file)
     try:

@@ -70,26 +70,33 @@ def truncate_result(result: str, max_chars: int = DEFAULT_RESULT_MAX_CHARS) -> s
 def make_todo_tool() -> list[Tool]:
     """构造一组计划清单工具（todo_write / todo_mark / todo_read）。
 
-    状态存于闭包内（进程级、会话隔离），引导模型对多步任务先拆解再执行。
+    状态存于闭包内（进程级、会话隔离，带锁保证并发安全），
+    引导模型对多步任务先拆解再执行。
     """
+    import threading
+
     state: list[dict] = []
+    lock = threading.Lock()
 
     def todo_write(tasks: list[str]) -> str:
         """用新计划整体替换任务清单（每项一句短语，建议 3~7 项）。"""
-        state.clear()
-        state.extend({"task": t, "status": "pending"} for t in tasks)
+        with lock:
+            state.clear()
+            state.extend({"task": t, "status": "pending"} for t in tasks)
         return f"plan set: {len(tasks)} tasks"
 
     def todo_mark(index: int, status: str) -> str:
         """更新任务状态。index 从 0 起；status 常用 pending / in_progress / done。"""
-        if not 0 <= index < len(state):
-            return f"Error: index {index} out of range (0..{len(state) - 1})"
-        state[index]["status"] = status
-        return f"task {index} -> {status}"
+        with lock:
+            if not 0 <= index < len(state):
+                return f"Error: index {index} out of range (0..{len(state) - 1})"
+            state[index]["status"] = status
+            return f"task {index} -> {status}"
 
     def todo_read() -> list[dict]:
         """读取当前计划清单及各项状态。"""
-        return [dict(item) for item in state]
+        with lock:
+            return [dict(item) for item in state]
 
     return [Tool(todo_write), Tool(todo_mark), Tool(todo_read)]
 
@@ -130,10 +137,12 @@ def fs_tools(root: str | Path, max_read_chars: int = 4000) -> list[Tool]:
         return f"written: {len(content)} chars -> {path}"
 
     def fs_list(path: str = ".") -> list[str]:
-        """列出 root 内相对路径目录下的文件与子目录名。"""
+        """列出 root 内相对路径目录下的文件与子目录名（传入文件路径则返回其自身）。"""
         p = root_path / path
         if not _within(root_path, p):
             raise ValueError(f"path escapes sandbox root: {path}")
+        if p.is_file():
+            return [p.name]
         return sorted(item.name + ("/" if item.is_dir() else "") for item in p.iterdir())
 
     return [Tool(fs_read), Tool(fs_write), Tool(fs_list)]

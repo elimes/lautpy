@@ -172,3 +172,34 @@ def test_make_subagent_tool_isolates_context():
     assert sub_fake.calls[0]["messages"][-1]["content"] == "study"
     assert len(sub_fake.calls[0]["messages"]) == 2
     assert len(outer.calls) == 2
+
+
+def test_budget_exceeded_blocks_tool_execution():
+    """回归：force_final 后模型幻觉出的 tool_calls 不得被执行。"""
+    executed = []
+
+    @tool
+    def filler() -> str:
+        """填充上下文。"""
+        executed.append(None)
+        return "z" * 500
+
+    tc = SimpleNamespace(id="c1", function=SimpleNamespace(name="filler", arguments="{}"))
+    tool_turn = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(
+        content="", tool_calls=[tc]))])
+    # 第 2~8 轮模型继续幻觉工具调用（脚本只回工具轮），最终以 RuntimeError 收场
+    fake = FakeClient([tool_turn] * 8)
+    with pytest.raises(RuntimeError, match="max_turns"):
+        run_agent("go", [filler], model="m", client=fake,
+                  harness=Harness(max_context_chars=400, tool_result_max_chars=None))
+    assert executed == [None]  # 仅超预算前执行过一次，幻觉调用全部被拦截
+    # calls 的 messages 是累积快照：最后一次调用里应含全部 7 条拦截提示
+    blocked = [m["content"] for m in fake.calls[-1]["messages"]
+               if m.get("role") == "tool" and "budget exceeded" in m.get("content", "")]
+    assert len(blocked) == 7  # turn1..turn7 的幻觉调用全部被守卫拦截并回填提示
+
+
+def test_fs_list_on_file_returns_itself(tmp_path):
+    _, _, fs_list = fs_tools(tmp_path)
+    fs_tools(tmp_path)[1]("doc.txt", "x")
+    assert fs_list("doc.txt") == ["doc.txt"]  # 传入文件路径不再抛 NotADirectoryError
