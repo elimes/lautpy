@@ -1,39 +1,55 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "lautpy"
-version = "0.0.5.0"
-description = "A python utils package"
+version = "0.0.6.0"
+description = "Lightweight Python toolkit: pipe-style data processing, date/path/hash utils, decorators, webhooks and OpenAI-compatible clients"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
+license-files = ["LICENSE.txt"]
 authors = [
     {name = "elimes", email = "elimes@qq.com"},
 ]
+keywords = ["utils", "pipe", "functional", "decorators", "retry", "webhook", "openai", "toolkit"]
 classifiers = [
-    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
     "Operating System :: OS Independent",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dependencies = [
     "requests",
-    "numpy",
 ]
+
+[project.optional-dependencies]
+retry = ["tenacity>=8.0"]
+llm = ["openai>=1.0"]
+yaml = ["pyyaml"]
+ml = ["scikit-learn"]
+numpy = ["numpy"]
+all = ["tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy"]
+dev = ["pytest", "tenacity>=8.0", "openai>=1.0", "pyyaml", "scikit-learn", "numpy"]
 
 [project.urls]
 Homepage = "https://github.com/elimes/lautpy"
 Repository = "https://github.com/elimes/lautpy"
+Issues = "https://github.com/elimes/lautpy/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.package-data]
+lautpy = ["py.typed"]
