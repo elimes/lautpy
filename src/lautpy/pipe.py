@@ -77,6 +77,32 @@ except ImportError:
 T = TypeVar("T")
 U = TypeVar("U")
 
+# star 导出白名单：避免 np/pd/itertools 等实现细节泄漏到 `from lautpy import *`
+# 依赖第三方库的管道函数在其安装分支中追加（见下方各 `if xxx is not None` 块）
+__all__ = [
+    "Pipe",
+    # 基础类型转换
+    "xtuple", "xlist", "xset",
+    # 高阶函数
+    "xmap", "xmap_", "xfilter", "xfilter_", "xenumerate", "xenumerate_",
+    "xchain", "xchain_", "xzip", "xreduce", "xdrop", "xdrop_",
+    # 排序 & 分组
+    "xsort", "xgroup",
+    # 字符串 & 字典
+    "xjoin", "xitemgetter", "xstartswith", "xendswith",
+    "xchain_dict", "xDictValues", "xDictRemove", "xgetitem",
+    # 统计
+    "xCounter", "xCounterUpdate", "xUnique",
+    # 并发
+    "xThreadPoolExecutor", "xProcessPoolExecutor", "xAsyncio",
+    # 调试与输出
+    "xprint", "xsse_parser", "xnext", "xtqdm",
+    # 计时
+    "timer",
+    # 日志（README 示例依赖，保留导出）
+    "logger",
+]
+
 
 class Pipe:
     """A decorator to enable Unix-like pipeline syntax using `|`."""
@@ -101,6 +127,7 @@ xset = Pipe(set)
 
 # === NumPy 支持 ===
 if np is not None:
+    __all__ += ["xarray", "xstack"]
 
     @Pipe
     def xarray(x, decimals: Optional[int] = None):
@@ -108,6 +135,10 @@ if np is not None:
         if decimals is not None:
             arr = np.round(arr, decimals)
         return arr
+
+    @Pipe
+    def xstack(iterable, axis: int = 0):
+        return np.stack(iterable, axis=axis)
 
 
 # === 高阶函数（返回惰性迭代器）===
@@ -119,6 +150,14 @@ xenumerate = Pipe(enumerate)
 xchain = Pipe(lambda iters: itertools.chain.from_iterable(iters))
 xzip = Pipe(zip)
 xreduce = Pipe(lambda iterable, func: functools.reduce(func, iterable))
+
+# 急切变体（约定：尾部下划线 = 立即求值返回 list，源自 meutils 的命名习惯）
+xmap_ = Pipe(lambda iterable, func: list(map(func, iterable)))
+xfilter_ = Pipe(lambda iterable, func: list(filter(func, iterable)))
+xenumerate_ = Pipe(lambda iterable, start=0: list(enumerate(iterable, start)))
+xchain_ = Pipe(lambda iters: list(itertools.chain.from_iterable(iters)))
+xdrop = Pipe(lambda iterable, func: itertools.dropwhile(func, iterable))
+xdrop_ = Pipe(lambda iterable, func: list(itertools.dropwhile(func, iterable)))
 
 
 # === 排序 & 分组 ===
@@ -171,8 +210,47 @@ def xendswith(iterable, suffix: Union[str, Tuple[str, ...]] = ("_", "__", ".")):
     return filter(lambda s: s.endswith(suffix), iterable)
 
 
+@Pipe
+def xchain_dict(dicts: List[Dict]) -> Dict:
+    """Merge a list of dicts into one (later keys win)."""
+    result: Dict = {}
+    for d in dicts:
+        result.update(d)
+    return result
+
+
+@Pipe
+def xDictValues(d: dict, keys: Iterable, default: Any = None) -> Tuple:
+    """Fetch multiple keys with a default, like dict.get for each key."""
+    return tuple(d.get(k, default) for k in keys)
+
+
+@Pipe
+def xDictRemove(d: dict, keys: Iterable) -> dict:
+    """Remove keys from a dict in place and return it."""
+    for k in keys:
+        d.pop(k, None)
+    return d
+
+
+@Pipe
+def xgetitem(iterable: Iterable, index: int = 0):
+    """Yield element at `index` from each item, e.g. [(0, 1), (1, 2)] | xgetitem(1)."""
+    for item in iterable:
+        yield operator.getitem(item, index)
+
+
 # === 统计 ===
 xCounter = Pipe(Counter)
+
+
+@Pipe
+def xCounterUpdate(iterable: Iterable[Iterable], counter: Optional[Counter] = None) -> Counter:
+    """Accumulate counts from an iterable of iterables, e.g. [['w1', 'w2'], ...]."""
+    counter = counter if counter is not None else Counter()
+    for item in iterable:
+        counter.update(item)
+    return counter
 
 
 @Pipe
@@ -185,6 +263,7 @@ def xUnique(iterable, keep_order: bool = True):
 
 # === Pandas 支持 ===
 if pd is not None:
+    __all__ += ["xconcat_df"]
 
     @Pipe
     def xconcat_df(dfs, axis: int = 0, ignore_index: bool = True):
@@ -193,6 +272,7 @@ if pd is not None:
 
 # === 并发执行 ===
 if joblib is not None:
+    __all__ += ["xJobs"]
 
     @Pipe
     def xJobs(iterable, func, n_jobs: int = 3):
@@ -244,8 +324,30 @@ def xProcessPoolExecutor(
         return list(map(func, iterable))
 
 
+# === 异步并发 ===
+@Pipe
+def xAsyncio(tasks, return_exceptions: bool = False):
+    """Run a list of coroutines concurrently and collect results.
+
+    Usage::
+
+        async def job(i):
+            await asyncio.sleep(0.1)
+            return i
+
+        [job(i) for i in range(10)] | xAsyncio
+    """
+    import asyncio
+
+    async def _gather():
+        return await asyncio.gather(*tasks, return_exceptions=return_exceptions)
+
+    return asyncio.run(_gather())
+
+
 # === Sklearn 支持 ===
 if sklearn is not None:
+    __all__ += ["xshuffle"]
 
     @Pipe
     def xshuffle(l, n_samples: Optional[int] = None):
@@ -290,6 +392,12 @@ def xsse_parser(
 @Pipe
 def xtqdm(iterable, desc: Optional[str] = None):
     return tqdm(iterable, desc=desc)
+
+
+@Pipe
+def xnext(items: Iterable) -> Iterator:
+    """Convert an iterable into a pull-based iterator: `it = xs | xnext; next(it)`."""
+    return iter(items)
 
 
 # === 计时 ===
