@@ -11,6 +11,7 @@ Conventions for every wrapper in this package:
 from lautpy.apis.client import (  # noqa: F401
     MissingAPIKeyError,
     get_api_key,
+    get_shared_session,
     http_session,
     request,
 )

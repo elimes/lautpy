@@ -27,12 +27,12 @@ lautpy/
 │       ├── client.py           # 基建：get_api_key（环境变量密钥）+ request（超时/重试）
 │       ├── tools.py            # 无密钥工具：shorten_url / data2qrcodeurl / download / is_open
 │       └── niutrans.py         # 翻译 API（示范新 API 的接入模式）
-├── tests/                      # pytest 测试（71 用例，可选依赖缺失自动 skip）
+├── tests/                      # pytest 测试（81 用例，可选依赖缺失自动 skip）
 ├── docs/                       # 本文档 + 使用指南
 ├── CHANGELOG.md                # 版本变更记录（Unreleased 段随发版归档）
 ├── .data/VERSION               # 唯一版本源（pyproject 动态读取）
 ├── .github/workflows/
-│   ├── test.yml                # CI：3.10–3.13 矩阵测试 + ruff lint
+│   ├── test.yml                # CI：3.10–3.13 矩阵测试 + ruff + mypy
 │   └── publish.yml             # tag 触发 → PyPI（trusted publishing）
 └── pyproject.toml              # PEP 639 元数据 + extras + ruff/pytest 配置
 ```
@@ -101,14 +101,21 @@ class Pipe:
 - **循环稳健性**：工具执行异常会作为错误信息回传给模型自行调整（不中断循环）；
   未知工具名同样回传报错；`max_turns` 防死循环；`client` 可注入（测试无网络）
 - **引擎选择**：只需要"模型+工具"用原生引擎（`run_agent`）；需要中间件、
-  结构化输出、MCP 等用 `build_agent`（Python 3.10+，langchain 1.x 本身的要求）
+  MCP 等用 `build_agent`
+- **结构化输出**：`run_agent(response_model=PydanticModel)` 把 JSON Schema
+  提示注入 system，最终回答校验失败自动回传错误让模型重试；容错剥离
+  markdown 代码栅栏（pydantic 随 openai extra 提供）
+- **流式输出**：`run_agent_stream` 逐段产出文本增量；流内聚合 tool_calls
+  增量（id/name/arguments 按 index 拼接），工具轮静默执行回填
+- **凭证解析**：`llm.resolve_credentials()` / `llm.resolve_model()` 为公开
+  API（llm/agent/notice 共用的 <SVC>_ 三元组解析，勿再访问 `llm._resolve`）
 
 ## 六、版本与发布
 
 1. **版本号唯一来源是 `.data/VERSION`**——pyproject 里 `dynamic = ["version"]`，setuptools 构建时自动读取，不存在第二处需要同步的版本号
 2. 发版：`./release.sh <版本>` → 提交版本文件 → 打 `v*` tag → `publish.yml` 自动构建并经 trusted publishing 发布到 PyPI
 3. **发版前必须经仓库所有者确认**（流程约定）
-4. CI（`test.yml`）在每次 push/PR 时跑 3.10–3.13 全矩阵测试 + ruff
+4. CI（`test.yml`）在每次 push/PR 时跑 3.10–3.13 全矩阵测试 + ruff + mypy
 
 ## 七、测试约定
 

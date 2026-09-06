@@ -1,11 +1,11 @@
 # @Author: elimes
-"""OpenAI 兼容客户端工厂。
+"""OpenAI 兼容客户端工厂与服务凭证解析。
 
 客户端按需构建并缓存（键为 service + key + base_url）；厂商列表开放——
 任何暴露 OpenAI 兼容 API 的服务都能接::
 
-    export MOONSHOT_API_KEY=...          # 可选: MOONSHOT_BASE_URL
-    export ZHIPUAI_API_KEY=...           # 可选: ZHIPUAI_BASE_URL
+    export MOONSHOT_API_KEY=...          # 可选: MOONSHOT_BASE_URL / MOONSHOT_MODEL
+    export ZHIPUAI_API_KEY=...           # 可选: ZHIPUAI_BASE_URL / ZHIPUAI_MODEL
 
     from lautpy.llm import openai_client
     client = openai_client("moonshot")
@@ -21,7 +21,22 @@ except ImportError:
     OpenAI = None  # type: ignore
 
 
-def _resolve(service: str, api_key: str | None, base_url: str | None) -> tuple:
+def resolve_credentials(
+    service: str, api_key: str | None = None, base_url: str | None = None
+) -> tuple[str, str | None]:
+    """解析某服务的凭证（公开 API，供 notice/agent 等模块与用户代码复用）。
+
+    Args:
+        service: 服务名，决定环境变量前缀（如 "moonshot" → MOONSHOT_API_KEY）。
+        api_key: 显式密钥，优先于环境变量。
+        base_url: 显式接入点，优先于环境变量；缺省返回 None（官方默认端点）。
+
+    Returns:
+        tuple[str, str | None]: (api_key, base_url)。
+
+    Raises:
+        RuntimeError: 环境与入参均未提供密钥。
+    """
     upper = service.upper()
     api_key = api_key or os.getenv(f"{upper}_API_KEY")
     if not api_key:
@@ -31,6 +46,21 @@ def _resolve(service: str, api_key: str | None, base_url: str | None) -> tuple:
         )
     base_url = base_url or os.getenv(f"{upper}_BASE_URL")
     return api_key, base_url
+
+
+def resolve_model(service: str, model: str | None = None) -> str:
+    """解析模型名：显式参数优先，其次 <SVC>_MODEL 环境变量。
+
+    Raises:
+        RuntimeError: 两处都未提供。
+    """
+    name = model or os.getenv(f"{service.upper()}_MODEL")
+    if not name:
+        raise RuntimeError(
+            f"No model name for service '{service}'. Set {service.upper()}_MODEL "
+            f"or pass model=... explicitly."
+        )
+    return name
 
 
 def openai_client(
@@ -61,7 +91,7 @@ def openai_client(
     """
     if OpenAI is None:
         raise ImportError("openai is required: pip install openai")
-    key, url = _resolve(service, api_key, base_url)
+    key, url = resolve_credentials(service, api_key, base_url)
     return _cached_client(service, key, url)
 
 

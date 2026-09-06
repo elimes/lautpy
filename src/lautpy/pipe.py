@@ -96,11 +96,13 @@ class Pipe:
         [1, 2, 3] | xadd(10)   # [11, 12, 13]
     """
 
-    def __init__(self, func: Callable[[T], U]):
+    def __init__(self, func: Callable[..., Any]) -> None:
+        # Callable[..., Any] 而非 Callable[[T], U]：管道函数天生接受
+        # (data, *args) 并支持部分应用，单参签名无法表达
         self.func = func
         functools.update_wrapper(self, func)
 
-    def __ror__(self, other: T) -> U:
+    def __ror__(self, other: Any) -> Any:
         return self.func(other)
 
     def __call__(self, *args, **kwargs) -> "Pipe":

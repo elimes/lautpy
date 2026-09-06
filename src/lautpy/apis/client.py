@@ -6,12 +6,16 @@
 """
 
 import os
+import threading
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 DEFAULT_TIMEOUT = 30  # seconds
+
+_shared_session: requests.Session | None = None
+_shared_lock = threading.Lock()
 
 
 class MissingAPIKeyError(RuntimeError):
@@ -68,16 +72,34 @@ def http_session(retries: int = 2, backoff_factor: float = 0.5) -> requests.Sess
     return session
 
 
+def get_shared_session() -> requests.Session:
+    """进程级共享 Session（带重试适配器），用于 TCP 连接复用。
+
+    默认被 request() 使用。连接池本身线程安全，但高频并发下的 Cookie
+    语义可能交叉——极端并发场景请为每个线程传入独立 session。
+    """
+    global _shared_session
+    if _shared_session is None:
+        with _shared_lock:
+            if _shared_session is None:
+                _shared_session = http_session()
+    return _shared_session
+
+
 def request(method: str, url: str, *, timeout: float = DEFAULT_TIMEOUT,
             retries: int = 2, session: requests.Session | None = None,
             **kwargs) -> requests.Response:
     """本包统一的 HTTP 出口：强制超时 + 瞬时故障重试 + 非 2xx 抛异常。
 
+    默认复用进程级共享 Session（TCP 连接复用）；批量高并发场景可传入
+    自建 session（此时由调用方负责关闭）。
+
     Args:
         method: HTTP 方法（GET/POST/...）。
         url: 请求地址。
         timeout: 超时秒数（默认 30s；**不要**为省事传 None）。
-        retries: 新建 session 的重试次数；传入 session 时该参数无效。
+        retries: 仅在需要新建 session 时生效；传入 session 或复用共享
+            session 时该参数无效。
         session: 复用调用方提供的 Session（此时由调用方负责关闭）。
         **kwargs: 透传给 requests.Session.request（params/json/headers/...）。
 
@@ -87,12 +109,7 @@ def request(method: str, url: str, *, timeout: float = DEFAULT_TIMEOUT,
     Raises:
         requests.HTTPError: 响应状态码非 2xx（含重试耗尽后）。
     """
-    own_session = session is None
-    s = session or http_session(retries=retries)
-    try:
-        response = s.request(method, url, timeout=timeout, **kwargs)
-        response.raise_for_status()
-        return response
-    finally:
-        if own_session:
-            s.close()
+    s = session or get_shared_session()
+    response = s.request(method, url, timeout=timeout, **kwargs)
+    response.raise_for_status()
+    return response

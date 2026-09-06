@@ -40,3 +40,34 @@ def test_no_hardcoded_keys_in_apis_source():
     apis_dir = Path(__file__).resolve().parents[1] / "src" / "lautpy" / "apis"
     for f in apis_dir.rglob("*.py"):
         assert not pattern.search(f.read_text(encoding="utf-8")), f"hardcoded key in {f.name}"
+
+
+def test_shared_session_identity():
+    from lautpy.apis import get_shared_session
+
+    assert get_shared_session() is get_shared_session()  # 进程级复用
+
+
+def test_request_uses_shared_session(monkeypatch):
+    """默认走共享 Session；显式传 session 时不落共享对象。"""
+    from types import SimpleNamespace
+
+    from lautpy.apis import client
+
+    shared = client.get_shared_session()
+    seen = {}
+
+    def fake_request(method, url, **kwargs):
+        seen["url"] = url
+        return SimpleNamespace(raise_for_status=lambda: None)
+
+    monkeypatch.setattr(shared, "request", fake_request)
+    client.request("GET", "https://example.com/a")
+    assert seen["url"] == "https://example.com/a"
+
+    own = client.http_session()
+    used_own = {}
+    monkeypatch.setattr(own, "request", lambda m, u, **kw: used_own.update(url=u) or
+                        SimpleNamespace(raise_for_status=lambda: None))
+    client.request("GET", "https://example.com/b", session=own)
+    assert used_own["url"] == "https://example.com/b" and seen["url"] != used_own["url"]

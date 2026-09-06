@@ -18,7 +18,7 @@ import time
 from collections import deque
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from lautpy._internal import logger
 
@@ -88,7 +88,7 @@ def retrying(
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        return wrapper
+        return cast("F", wrapper)
 
     return decorator
 
@@ -116,7 +116,7 @@ def timeout(seconds: float) -> Callable[[F], F]:
             finally:
                 executor.shutdown(wait=False)
 
-        return wrapper
+        return cast("F", wrapper)
 
     return decorator
 
@@ -146,7 +146,7 @@ def background_task(func: F) -> F:
         executor.shutdown(wait=False)
         return future
 
-    return wrapper
+    return cast("F", wrapper)
 
 
 def ratelimit(calls: int, period: float) -> Callable[[F], F]:
@@ -180,7 +180,7 @@ def ratelimit(calls: int, period: float) -> Callable[[F], F]:
                 timestamps.append(time.monotonic())
             return func(*args, **kwargs)
 
-        return wrapper
+        return cast("F", wrapper)
 
     return decorator
 
@@ -202,7 +202,7 @@ def singleton(cls: type) -> type:
         return instances[cls]
 
     get_instance.__wrapped__ = cls  # expose the original class for tests/typing
-    return get_instance
+    return cast("type", get_instance)
 
 
 def synchronized(lock: "threading.Lock | None" = None) -> Callable[[F], F]:
@@ -219,7 +219,7 @@ def synchronized(lock: "threading.Lock | None" = None) -> Callable[[F], F]:
             with fn_lock:
                 return func(*args, **kwargs)
 
-        return wrapper
+        return cast("F", wrapper)
 
     return decorator
 

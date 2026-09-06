@@ -5,7 +5,15 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 ## [Unreleased]
 
 ### Added
-- `lautpy.agent`: agent building layer with dual engines — native OpenAI
+- Agent engine upgrades: `run_agent(response_model=PydanticModel)` for
+  validated structured output (invalid JSON is fed back for retry) and
+  `run_agent_stream` for incremental streaming with in-band tool execution
+- `lautpy.llm`: public `resolve_credentials()` / `resolve_model()` (were
+  private, cross-module used); shared HTTP session with connection reuse via
+  `apis.get_shared_session()` (default for `request()`)
+- CI: mypy type check (17 files, 0 issues) alongside ruff
+### Changed
+- `uv.lock` removed from version control (library best practice) — native OpenAI
   tool-calling loop (`run_agent`, no langchain needed, Python 3.8+) and
   LangChain 1.x `create_agent` wrapper (`build_agent`, Python 3.10+, via the
   new `agent` extra); one `@tool` definition feeds both engines

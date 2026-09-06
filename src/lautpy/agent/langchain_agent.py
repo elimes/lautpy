@@ -1,23 +1,12 @@
 # @Author: elimes
 """LangChain 1.x 引擎：用 lautpy 的环境变量约定与工具定义驱动 create_agent。
 
-仅 Python >= 3.10（langchain 1.x 的要求），``pip install "lautpy[agent]"``。
+需 langchain 1.x（``pip install "lautpy[agent]"``）。
 """
 
-import os
 from typing import Any
 
 from lautpy.agent.tools import Tool
-
-
-def _resolve_model_name(service: str, model: str | None) -> str:
-    name = model or os.getenv(f"{service.upper()}_MODEL")
-    if not name:
-        raise RuntimeError(
-            f"No model name for service '{service}'. Set {service.upper()}_MODEL "
-            f"or pass model=... explicitly."
-        )
-    return name
 
 
 def build_langchain_agent(
@@ -44,14 +33,13 @@ def build_langchain_agent(
         from langchain_openai import ChatOpenAI
     except ImportError as e:
         raise ImportError(
-            'langchain is required for build_agent: pip install "lautpy[agent]" '
-            "(Python >= 3.10)"
+            'langchain is required for build_agent: pip install "lautpy[agent]"'
         ) from e
 
     from lautpy import llm
 
-    api_key, base_url = llm._resolve(service, None, None)
-    model_name = _resolve_model_name(service, model)
+    api_key, base_url = llm.resolve_credentials(service)
+    model_name = llm.resolve_model(service, model)
 
     chat_kwargs: dict = {"model": model_name, "api_key": api_key}
     if base_url:

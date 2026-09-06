@@ -33,8 +33,9 @@ def _schema_from_hints(func: Callable) -> dict[str, Any]:
             continue
         hint = hints.get(name, str)
         json_type = _TYPE_MAP.get(hint, None)
-        if json_type is None and hasattr(hint, "__origin__"):  # List[str] 等泛型
-            json_type = _TYPE_MAP.get(getattr(hint, "__origin__", None), "string")
+        origin = getattr(hint, "__origin__", None)  # List[str] 等泛型的容器类型
+        if json_type is None and origin is not None:
+            json_type = _TYPE_MAP.get(origin, "string")
         properties[name] = {"type": json_type or "string"}
         if param.default is param.empty:
             required.append(name)
