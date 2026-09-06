@@ -6,6 +6,7 @@ Adapted from meutils.path_utils (MIT License, Copyright (c) yuanjie).
 """
 
 import json
+import pickle
 import sys
 from pathlib import Path
 from typing import Any, List, Optional, Union
@@ -56,3 +57,15 @@ def get_config(config_init: Optional[Union[str, dict]]) -> dict:
     if isinstance(config_init, dict):
         return config_init
     return {}
+
+
+def pkl_dump(obj: Any, file: Union[str, Path]) -> Path:
+    """Pickle `obj` to `file` (binary); returns the path."""
+    p = Path(file)
+    p.write_bytes(pickle.dumps(obj, protocol=4))
+    return p
+
+
+def pkl_load(file: Union[str, Path]) -> Any:
+    """Load an object pickled by pkl_dump."""
+    return pickle.loads(Path(file).read_bytes())

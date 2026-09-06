@@ -57,6 +57,26 @@ paths.file2json("config.yaml")                   # json/yaml -> dict
 paths.path2list("dir", "*.txt")                  # 文件/目录展开
 ```
 
+## 装饰器 / 通知 / LLM 客户端
+
+```python
+from lautpy import decorators, notice, llm
+
+# 装饰器（retry 需 tenacity，其余纯标准库）
+@decorators.retrying(max_retries=3)       # 指数退避重试，耗尽后 reraise
+@decorators.timeout(30)                   # 超时抛 TimeoutError
+@decorators.background_task               # 后台执行，返回 Future，异常记日志
+@decorators.ratelimit(calls=5, period=1)  # 滑动窗口限流
+def flaky_api(): ...
+
+# 群机器人通知（webhook 走环境变量：WECOM_WEBHOOK_URL / FEISHU_WEBHOOK_URL）
+notice.wecom("部署完成", title="CI")
+notice.feishu(["任务1 ✓", "任务2 ✓"], title="日报")
+
+# OpenAI 兼容客户端工厂（openai 可选依赖；密钥走 <SVC>_API_KEY / <SVC>_BASE_URL）
+client = llm.openai_client("moonshot")    # 任意 openai 兼容服务
+```
+
 ## API 封装（`lautpy.apis`）
 
 密钥一律走环境变量，源码中零硬编码；HTTP 统一带超时与自动重试：
@@ -72,7 +92,7 @@ translate("你好", "auto", "en")           # NiuTrans 翻译
 shorten_url("https://example.com/...")   # 无需密钥的短链/二维码工具
 ```
 
-> 关于从 meutils 移植 `apis/*` 的取舍：meutils 有 325 个 API 封装文件，但其中大部分并非独立函数——它们依赖原作者的私人基建（飞书表格里的 key 池、其个人的阿里云 OSS、one-api 网关）以及 meutils 内部的 schemas/llm/oss/caches 全套依赖，还有 75 个文件内嵌明文密钥。这些代码即使改成环境变量也无法脱离原体系验证，因此**没有全量移植**。本包只移植了可独立运行的部分，并提供了规范化的接入模式（`get_api_key()` + `request()`）。需要接入新 API 时照此模式添加即可。
+> 关于从 meutils 移植的取舍：meutils 有 325 个 API 封装文件，但其中大部分并非独立函数——它们依赖原作者的私人基建（飞书表格里的 key 池、其个人的阿里云 OSS、one-api 网关），还有 75 个文件内嵌明文密钥，通知模块甚至硬编码了作者本人的 webhook 地址。这些代码即使改成环境变量也无法脱离原体系验证，因此**没有全量移植**。同样未移植：`db/`、`oss/`（厂商 SDK 薄封装，价值低于直接用 SDK）、`schemas/`（重复 openai 官方自带的 pydantic 模型）、`crawlers/`（上游本身是空目录）。本包只移植了可独立运行、可测试的部分，新接入照 `client.py` 模式即可。
 
 ## 设计约定
 
