@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """无密钥 Web 工具：短链、二维码、流式下载、TCP 端口探测。"""
 
 import socket
 from pathlib import Path
-from typing import Union
 from urllib.parse import quote, urlparse
 
 from lautpy.apis.client import DEFAULT_TIMEOUT, http_session, request
@@ -32,7 +30,7 @@ def shorten_url(url: str, shortener: str = "dagd") -> str:
     raise ValueError(f"Unsupported shortener: {shortener!r} (use 'dagd' or 'tinyurl')")
 
 
-def data2qrcodeurl(data: Union[str, bytes]) -> str:
+def data2qrcodeurl(data: str | bytes) -> str:
     """把文本编码为二维码图片 URL（公共服务，直接塞进 <img src> 即可显示）。
 
     Args:
@@ -43,7 +41,7 @@ def data2qrcodeurl(data: Union[str, bytes]) -> str:
     return f"https://api.isoyu.com/qr/?m=1&e=L&p=20&url={quote(data)}"
 
 
-def download(url: str, filename: Union[str, Path, None] = None, chunk_size: int = 8192) -> Path:
+def download(url: str, filename: str | Path | None = None, chunk_size: int = 8192) -> Path:
     """流式下载文件（带超时与重试）。
 
     Args:

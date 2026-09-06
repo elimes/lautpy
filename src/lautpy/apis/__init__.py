@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Third-party API wrappers with env-var-based key management.
 
 Conventions for every wrapper in this package:

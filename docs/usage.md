@@ -15,7 +15,7 @@ pip install "lautpy[yaml]"         # yaml 配置读取
 pip install "lautpy[ml]"           # murmurhash/ABTest/shuffle（scikit-learn）
 ```
 
-要求 Python ≥ 3.8。导入零副作用、无强制联网，`import lautpy` 永远是安全的。
+要求 Python ≥ 3.10。导入零副作用、无强制联网，`import lautpy` 永远是安全的。
 
 ## 1. 管道数据处理 `lautpy.pipe`
 
@@ -174,7 +174,7 @@ resp = client.chat.completions.create(
 
 ## 8. Agent 构建 `lautpy.agent`
 
-双轨设计：**原生引擎**只用 OpenAI 兼容 API（`pip install "lautpy[llm]"`，Python 3.8+）；
+双轨设计：**原生引擎**只用 OpenAI 兼容 API（`pip install "lautpy[llm]"）；；
 **LangChain 引擎**包装 langchain 1.x `create_agent`（`pip install "lautpy[agent]"`，Python 3.10+）。
 两侧共用同一套工具定义。
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """NiuTrans 翻译 API。
 
@@ -6,7 +5,6 @@
 （超时 + 重试）。接入新 API 时照此文件的写法作为模板。
 """
 
-from typing import Optional
 
 from lautpy.apis.client import get_api_key, request
 
@@ -17,7 +15,7 @@ def translate(
     sentence: str,
     src_lan: str = "auto",
     tgt_lan: str = "en",
-    api_key: Optional[str] = None,
+    api_key: str | None = None,
 ) -> str:
     """调用 NiuTrans 翻译一段文本。
 

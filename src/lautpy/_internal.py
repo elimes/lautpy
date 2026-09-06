@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Internal shared helpers — not part of the public API (hence the underscore)."""
 
 import logging

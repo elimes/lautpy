@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """Agent 构建工具集：统一的工具定义 + 双轨执行引擎。
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """OpenAI 兼容客户端工厂。
 
@@ -14,7 +13,7 @@
 
 import os
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Any
 
 try:
     from openai import OpenAI
@@ -22,7 +21,7 @@ except ImportError:
     OpenAI = None  # type: ignore
 
 
-def _resolve(service: str, api_key: Optional[str], base_url: Optional[str]) -> tuple:
+def _resolve(service: str, api_key: str | None, base_url: str | None) -> tuple:
     upper = service.upper()
     api_key = api_key or os.getenv(f"{upper}_API_KEY")
     if not api_key:
@@ -36,8 +35,8 @@ def _resolve(service: str, api_key: Optional[str], base_url: Optional[str]) -> t
 
 def openai_client(
     service: str = "openai",
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
 ) -> Any:
     """获取某服务的 OpenAI 兼容客户端（同参数重复调用返回缓存实例）。
 
@@ -67,7 +66,7 @@ def openai_client(
 
 
 @lru_cache(maxsize=32)
-def _cached_client(service: str, api_key: str, base_url: Optional[str]) -> Any:
+def _cached_client(service: str, api_key: str, base_url: str | None) -> Any:
     kwargs = {"api_key": api_key}
     if base_url:
         kwargs["base_url"] = base_url

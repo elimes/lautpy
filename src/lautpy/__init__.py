@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """lautpy —— 轻量 Python 工具集。
 
@@ -15,18 +14,12 @@ from .pipe import *  # noqa: F401,F403
 
 def _get_version() -> str:
     """从包元数据读取版本号；源码目录直接运行时回退读取仓库根的 .data/VERSION。"""
+    from importlib.metadata import PackageNotFoundError, version
+
     try:
-        from importlib.metadata import PackageNotFoundError, version
-    except ImportError:  # Python 3.7 需借助 backport
-        try:
-            from importlib_metadata import PackageNotFoundError, version
-        except ImportError:
-            PackageNotFoundError = None
-    if PackageNotFoundError is not None:
-        try:
-            return version("lautpy")
-        except PackageNotFoundError:
-            pass
+        return version("lautpy")
+    except PackageNotFoundError:
+        pass
     # 未安装：回退到仓库根的权威版本文件（src/lautpy/__init__.py -> 上两级即仓库根）
     from pathlib import Path
 

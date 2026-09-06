@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """管道式数据处理：data | xfunc1 | xfunc2 的 Unix 风格函数族。
 
@@ -15,9 +14,10 @@ import json
 import operator
 import time
 from collections import Counter, OrderedDict
+from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union
+from typing import Any, TypeVar
 
 # 可选依赖：缺失时对应管道函数不存在，其余功能不受影响（见 docs/architecture.md）
 try:
@@ -123,7 +123,7 @@ if np is not None:
     __all__ += ["xarray", "xstack"]
 
     @Pipe
-    def xarray(x, decimals: Optional[int] = None):
+    def xarray(x, decimals: int | None = None):
         """可迭代对象 → numpy 数组；decimals 给定时按位四舍五入。"""
         arr = np.array(x)
         if decimals is not None:
@@ -210,7 +210,7 @@ def xitemgetter(keys, d: dict):
 
 
 @Pipe
-def xstartswith(iterable, prefix: Union[str, Tuple[str, ...]] = ("_", "__", ".")):
+def xstartswith(iterable, prefix: str | tuple[str, ...] = ("_", "__", ".")):
     """过滤出以 prefix 开头的元素（惰性）。"""
     if isinstance(prefix, str):
         prefix = (prefix,)
@@ -218,7 +218,7 @@ def xstartswith(iterable, prefix: Union[str, Tuple[str, ...]] = ("_", "__", ".")
 
 
 @Pipe
-def xendswith(iterable, suffix: Union[str, Tuple[str, ...]] = ("_", "__", ".")):
+def xendswith(iterable, suffix: str | tuple[str, ...] = ("_", "__", ".")):
     """过滤出以 suffix 结尾的元素（惰性）。"""
     if isinstance(suffix, str):
         suffix = (suffix,)
@@ -226,16 +226,16 @@ def xendswith(iterable, suffix: Union[str, Tuple[str, ...]] = ("_", "__", ".")):
 
 
 @Pipe
-def xchain_dict(dicts: List[Dict]) -> Dict:
+def xchain_dict(dicts: list[dict]) -> dict:
     """合并一批 dict 为一个（后者覆盖同名键）。"""
-    result: Dict = {}
+    result: dict = {}
     for d in dicts:
         result.update(d)
     return result
 
 
 @Pipe
-def xDictValues(d: dict, keys: Iterable, default: Any = None) -> Tuple:
+def xDictValues(d: dict, keys: Iterable, default: Any = None) -> tuple:
     """批量取值带默认值：d | xDictValues(["a", "z"], default=0) → (值, 0)。"""
     return tuple(d.get(k, default) for k in keys)
 
@@ -261,7 +261,7 @@ xCounter.__doc__ = "迭代器 → Counter（词频统计）。"
 
 
 @Pipe
-def xCounterUpdate(iterable: Iterable[Iterable], counter: Optional[Counter] = None) -> Counter:
+def xCounterUpdate(iterable: Iterable[Iterable], counter: Counter | None = None) -> Counter:
     """增量计数：iterable 的每个元素须是可迭代对象，逐个并入 Counter。
 
     传入 counter 时在原对象上累积（常用于跨批次合并计数）。
@@ -282,7 +282,7 @@ def xUnique(iterable, keep_order: bool = True):
 
 
 @Pipe
-def xUniquePlus(iterable, key_fn: Optional[Callable] = None):
+def xUniquePlus(iterable, key_fn: Callable | None = None):
     """去重任意对象（含 dict 等不可哈希对象），保留首次出现。
 
     Args:
@@ -410,7 +410,7 @@ if sklearn is not None:
     __all__ += ["xshuffle"]
 
     @Pipe
-    def xshuffle(l, n_samples: Optional[int] = None):
+    def xshuffle(l, n_samples: int | None = None):
         """打乱顺序；n_samples 给定时随机抽取 n_samples 个（需 scikit-learn）。"""
         return sklearn.utils.shuffle(l, n_samples=n_samples)
 
@@ -430,7 +430,7 @@ def xprint(iterable, end: str = "\n", desc: str = "Print"):
 def xsse_parser(
     lines: Iterable[str],
     prefix: str = "data:",
-    skip_substrings: Optional[List[str]] = None,
+    skip_substrings: list[str] | None = None,
 ):
     """解析 SSE（Server-Sent Events）行为 JSON 列表（LLM 流式输出常用）。
 
@@ -459,7 +459,7 @@ def xsse_parser(
 
 # === 进度条快捷方式 ===
 @Pipe
-def xtqdm(iterable, desc: Optional[str] = None):
+def xtqdm(iterable, desc: str | None = None):
     """给任意可迭代对象套上进度条。"""
     return tqdm(iterable, desc=desc)
 

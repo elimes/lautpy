@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """哈希工具：md5 摘要、与 Java 口径一致的 murmurhash 分桶、AB 实验分流、布隆过滤器。
 
@@ -8,7 +7,7 @@ murmurhash 系功能需要 scikit-learn；BloomFilter 为纯标准库实现。
 import hashlib as _hashlib
 import math
 import pickle
-from typing import Iterable, List, Optional, Tuple, Union
+from collections.abc import Iterable
 
 try:
     from sklearn.utils.murmurhash import murmurhash3_32 as _murmurhash3_32
@@ -16,7 +15,7 @@ except ImportError:
     _murmurhash3_32 = None  # type: ignore
 
 
-def md5(data: Union[str, bytes]) -> str:
+def md5(data: str | bytes) -> str:
     """计算 md5 摘要。
 
     Args:
@@ -33,7 +32,7 @@ def md5(data: Union[str, bytes]) -> str:
 def murmurhash(
     key: str = "key",
     value: str = "value",
-    bins: Optional[int] = None,
+    bins: int | None = None,
     str2md5: bool = True,
 ) -> int:
     """计算 "value:key" 的 murmurhash3_32（正值），可按 bins 取模分桶。
@@ -70,7 +69,7 @@ class ABTest:
             ...
     """
 
-    def __init__(self, expid: str = "10001", ranger: Tuple[int, int] = (0, 9), bins: int = 100):
+    def __init__(self, expid: str = "10001", ranger: tuple[int, int] = (0, 9), bins: int = 100):
         self._bins = bins
         self._ranger = set(range(*ranger))
         self._expid = expid
@@ -84,7 +83,7 @@ class ABTest:
         return murmurhash(key=self._expid, value=value, str2md5=False) % self._bins in self._ranger
 
 
-def hash_bins(values: Iterable, bins: int = 3, str2md5: bool = False) -> List[List]:
+def hash_bins(values: Iterable, bins: int = 3, str2md5: bool = False) -> list[list]:
     """按 murmurhash 把元素稳定分成 bins 组（同一元素必落同组）。
 
     适合一致性分片、按 key 分流等场景；bins 相同时重复调用分组结果不变。

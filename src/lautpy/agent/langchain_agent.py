@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """LangChain 1.x 引擎：用 lautpy 的环境变量约定与工具定义驱动 create_agent。
 
@@ -6,12 +5,12 @@
 """
 
 import os
-from typing import Any, List, Optional
+from typing import Any
 
 from lautpy.agent.tools import Tool
 
 
-def _resolve_model_name(service: str, model: Optional[str]) -> str:
+def _resolve_model_name(service: str, model: str | None) -> str:
     name = model or os.getenv(f"{service.upper()}_MODEL")
     if not name:
         raise RuntimeError(
@@ -22,11 +21,11 @@ def _resolve_model_name(service: str, model: Optional[str]) -> str:
 
 
 def build_langchain_agent(
-    tools: List[Tool],
+    tools: list[Tool],
     *,
     service: str = "openai",
-    model: Optional[str] = None,
-    system_prompt: Optional[str] = None,
+    model: str | None = None,
+    system_prompt: str | None = None,
     **kwargs,
 ):
     """构建 langchain create_agent 智能体（返回 langgraph 图对象）。

@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """路径与配置文件工具（json/yaml/pickle），yaml 支持需安装 pyyaml。"""
 
 import json
 import pickle
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any
 
 try:
     import yaml
@@ -13,7 +12,7 @@ except ImportError:
     yaml = None  # type: ignore
 
 
-def get_resolve_path(path: Union[str, Path], file: Union[str, Path]) -> Path:
+def get_resolve_path(path: str | Path, file: str | Path) -> Path:
     """以 file 所在目录为基准解析相对路径（常配合 __file__ 定位包内资源）。
 
     Args:
@@ -36,7 +35,7 @@ def _load_structured(text_or_bytes) -> dict:
     raise ImportError("pyyaml is required for yaml support: pip install pyyaml")
 
 
-def file2json(path: Union[str, Path]) -> dict:
+def file2json(path: str | Path) -> dict:
     """读取 .json / .yml / .yaml 配置文件为 dict。
 
     Args:
@@ -55,7 +54,7 @@ def file2json(path: Union[str, Path]) -> dict:
     return {}
 
 
-def path2list(path: Union[str, Path], pattern: str = "*") -> List[Path]:
+def path2list(path: str | Path, pattern: str = "*") -> list[Path]:
     """把文件或目录展开为 Path 列表。
 
     Args:
@@ -73,7 +72,7 @@ def path2list(path: Union[str, Path], pattern: str = "*") -> List[Path]:
     return []
 
 
-def get_config(config_init: Optional[Union[str, dict]]) -> dict:
+def get_config(config_init: str | dict | None) -> dict:
     """归一化配置来源：dict、json/yaml 文件路径、None 均可，统一返回 dict。
 
     Args:
@@ -87,7 +86,7 @@ def get_config(config_init: Optional[Union[str, dict]]) -> dict:
     return {}
 
 
-def pkl_dump(obj: Any, file: Union[str, Path]) -> Path:
+def pkl_dump(obj: Any, file: str | Path) -> Path:
     """把对象序列化落盘（pickle 二进制，protocol=4）。
 
     Args:
@@ -102,7 +101,7 @@ def pkl_dump(obj: Any, file: Union[str, Path]) -> Path:
     return p
 
 
-def pkl_load(file: Union[str, Path]) -> Any:
+def pkl_load(file: str | Path) -> Any:
     """读回 pkl_dump 落盘的对象。
 
     Args:

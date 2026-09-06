@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """原生 Agent 主循环：OpenAI 兼容 tool-calling，零 langchain 依赖。
 
@@ -10,14 +9,14 @@
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from lautpy._internal import logger
 
 DEFAULT_SYSTEM = "You are a helpful assistant. Use the provided tools when they help."
 
 
-def _resolve_model(service: str, model: Optional[str]) -> str:
+def _resolve_model(service: str, model: str | None) -> str:
     """模型名解析：显式参数优先，其次 <SVC>_MODEL 环境变量。"""
     name = model or os.getenv(f"{service.upper()}_MODEL")
     if not name:
@@ -30,14 +29,14 @@ def _resolve_model(service: str, model: Optional[str]) -> str:
 
 def run_agent_loop(
     prompt: str,
-    tools: List[Any],
+    tools: list[Any],
     *,
     service: str = "openai",
-    model: Optional[str] = None,
-    system: Optional[str] = None,
-    history: Optional[List[Dict]] = None,
+    model: str | None = None,
+    system: str | None = None,
+    history: list[dict] | None = None,
     max_turns: int = 8,
-    client: Optional[Any] = None,
+    client: Any | None = None,
 ) -> str:
     """执行 Agent 主循环（参数说明见 lautpy.agent.run_agent）。"""
     if client is None:
@@ -49,11 +48,11 @@ def run_agent_loop(
     tool_map = {t.name: t for t in tools}
     tool_specs = [t.to_openai_spec() for t in tools]
 
-    messages: List[Dict] = [{"role": "system", "content": system or DEFAULT_SYSTEM}]
+    messages: list[dict] = [{"role": "system", "content": system or DEFAULT_SYSTEM}]
     messages.extend(history or [])
     messages.append({"role": "user", "content": prompt})
 
-    create_kwargs: Dict[str, Any] = {"model": model_name, "messages": messages}
+    create_kwargs: dict[str, Any] = {"model": model_name, "messages": messages}
     if tool_specs:
         create_kwargs["tools"] = tool_specs
 
@@ -88,7 +87,7 @@ def run_agent_loop(
     )
 
 
-def _execute(tool_map: Dict[str, Any], tool_call) -> str:
+def _execute(tool_map: dict[str, Any], tool_call) -> str:
     """执行一次工具调用，把结果安全地序列化为字符串。"""
     name = tool_call.function.name
     tool_obj = tool_map.get(name)

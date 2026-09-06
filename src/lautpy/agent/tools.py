@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """统一工具定义：把普通函数变成 Agent 可调用的工具。
 
@@ -9,7 +8,8 @@
 
 import functools
 import inspect
-from typing import Any, Callable, Dict, Optional, get_type_hints
+from collections.abc import Callable
+from typing import Any, get_type_hints
 
 # Python 类型 → OpenAI JSON Schema 类型
 _TYPE_MAP = {
@@ -22,11 +22,11 @@ _TYPE_MAP = {
 }
 
 
-def _schema_from_hints(func: Callable) -> Dict[str, Any]:
+def _schema_from_hints(func: Callable) -> dict[str, Any]:
     """从函数签名推导 JSON Schema（required = 无默认值的参数）。"""
     sig = inspect.signature(func)
     hints = get_type_hints(func) if hasattr(func, "__module__") else {}
-    properties: Dict[str, Any] = {}
+    properties: dict[str, Any] = {}
     required = []
     for name, param in sig.parameters.items():
         if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
@@ -58,7 +58,7 @@ class Tool:
         self.parameters = _schema_from_hints(func)
         functools.update_wrapper(self, func)
 
-    def to_openai_spec(self) -> Dict[str, Any]:
+    def to_openai_spec(self) -> dict[str, Any]:
         """生成 OpenAI function-calling 的 tools 元素。"""
         return {
             "type": "function",
@@ -84,7 +84,7 @@ class Tool:
         return f"Tool({self.name}, params={list(self.parameters.get('properties', []))})"
 
 
-def tool(func: Optional[Callable] = None) -> Tool:
+def tool(func: Callable | None = None) -> Tool:
     """把普通函数变成 Agent 工具；函数 docstring 即工具描述（必填）。
 
     Example::

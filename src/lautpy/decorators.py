@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """函数装饰器：重试、超时、后台执行、限流、单例。
 
@@ -17,8 +16,9 @@ import functools
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Optional, Tuple, Type, TypeVar
+from typing import Any, TypeVar
 
 from lautpy._internal import logger
 
@@ -30,7 +30,7 @@ except ImportError:
 F = TypeVar("F", bound=Callable)
 
 #: 默认不重试的异常（多为编程错误，重试没有意义）
-_NON_RETRYABLE: Tuple[Type[BaseException], ...] = (
+_NON_RETRYABLE: tuple[type[BaseException], ...] = (
     KeyboardInterrupt,
     SystemExit,
     FileNotFoundError,
@@ -42,8 +42,8 @@ def retrying(
     max_retries: int = 2,
     exp_base: float = 2.0,
     max_wait: float = 60.0,
-    retry_on_result: Optional[Callable[[Any], bool]] = None,
-    ignored_exceptions: Optional[Tuple[Type[BaseException], ...]] = None,
+    retry_on_result: Callable[[Any], bool] | None = None,
+    ignored_exceptions: tuple[type[BaseException], ...] | None = None,
 ) -> Callable[[F], F]:
     """指数退避重试；重试耗尽后原样抛出最后一次异常。
 
@@ -205,7 +205,7 @@ def singleton(cls: type) -> type:
     return get_instance
 
 
-def synchronized(lock: Optional[threading.Lock] = None) -> Callable[[F], F]:
+def synchronized(lock: "threading.Lock | None" = None) -> Callable[[F], F]:
     """串行化对函数的调用（默认为每个函数配一把独立锁）。
 
     Args:

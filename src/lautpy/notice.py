@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Group-chat notifications via webhook robots (WeCom / Feishu).
 
 Security model: webhook URLs are resolved from the environment at call time
@@ -9,7 +8,7 @@ and there is no default — notifications can only go where *you* configured:
 - ``FEISHU_WEBHOOK_URL``  Feishu (飞书) custom bot
 """
 
-from typing import Any, List, Optional, Union
+from typing import Any
 
 from lautpy.apis.client import get_api_key, request
 
@@ -17,21 +16,21 @@ _WECOM_ENDPOINT = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send"
 _FEISHU_ENDPOINT = "https://open.feishu.cn/open-apis/bot/v2/hook" + "/{key}"
 
 
-def _wecom_url(webhook_url: Optional[str]) -> str:
+def _wecom_url(webhook_url: str | None) -> str:
     if webhook_url:
         return webhook_url
     key = get_api_key("wecom", env_var="WECOM_WEBHOOK_URL")
     return key if key.startswith("http") else f"{_WECOM_ENDPOINT}?key={key}"
 
 
-def _feishu_url(webhook_url: Optional[str]) -> str:
+def _feishu_url(webhook_url: str | None) -> str:
     if webhook_url:
         return webhook_url
     key = get_api_key("feishu", env_var="FEISHU_WEBHOOK_URL")
     return key if key.startswith("http") else _FEISHU_ENDPOINT.format(key=key)
 
 
-def _chunks(content: str, max_bytes: int = 3800) -> List[str]:
+def _chunks(content: str, max_bytes: int = 3800) -> list[str]:
     """Split by UTF-8 *bytes* (WeCom/Feishu cap at ~4096 bytes, and CJK chars
     cost 3 bytes each — splitting by character count would still overflow).
     Never splits inside a multi-byte character.
@@ -51,10 +50,10 @@ def _chunks(content: str, max_bytes: int = 3800) -> List[str]:
 
 
 def wecom(
-    content: Union[str, List[Any]],
+    content: str | list[Any],
     title: str = "",
-    mentioned_mobile_list: Optional[List[str]] = None,
-    webhook_url: Optional[str] = None,
+    mentioned_mobile_list: list[str] | None = None,
+    webhook_url: str | None = None,
 ) -> dict:
     """发送企业微信群机器人消息（markdown 格式）。
 
@@ -88,9 +87,9 @@ def wecom(
 
 
 def feishu(
-    content: Union[str, List[Any]],
+    content: str | list[Any],
     title: str = "",
-    webhook_url: Optional[str] = None,
+    webhook_url: str | None = None,
 ) -> dict:
     """发送飞书自定义机器人消息（text 格式，<> 会转义为【】避免被解析为标签）。
 

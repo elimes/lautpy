@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """第三方 API 封装的 HTTP 基建。
 
@@ -7,7 +6,6 @@
 """
 
 import os
-from typing import Optional
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -20,7 +18,7 @@ class MissingAPIKeyError(RuntimeError):
     """环境中未找到所需密钥时抛出（错误信息会指明应设置的环境变量名）。"""
 
 
-def get_api_key(service: str, env_var: Optional[str] = None) -> str:
+def get_api_key(service: str, env_var: str | None = None) -> str:
     """从环境变量解析 API 密钥。
 
     查找顺序：先 ``env_var``（若指定），再默认的 ``<SERVICE>_API_KEY``
@@ -71,7 +69,7 @@ def http_session(retries: int = 2, backoff_factor: float = 0.5) -> requests.Sess
 
 
 def request(method: str, url: str, *, timeout: float = DEFAULT_TIMEOUT,
-            retries: int = 2, session: Optional[requests.Session] = None,
+            retries: int = 2, session: requests.Session | None = None,
             **kwargs) -> requests.Response:
     """本包统一的 HTTP 出口：强制超时 + 瞬时故障重试 + 非 2xx 抛异常。
 

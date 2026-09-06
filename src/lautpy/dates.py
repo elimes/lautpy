@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # @Author: elimes
 """日期与时间戳转换工具（纯标准库，无第三方依赖）。
 
@@ -8,14 +7,13 @@
 
 import datetime
 import time
-from typing import List, Optional, Union
 
 DEFAULT_FMT = "%Y-%m-%d %H:%M:%S"
 
 
 def date_difference(
     fmt: str = DEFAULT_FMT,
-    start_date: Optional[Union[datetime.datetime, str, int]] = None,
+    start_date: datetime.datetime | str | int | None = None,
     **kwargs,
 ) -> str:
     """计算 start_date 平移指定时间量后的日期字符串。
@@ -66,7 +64,7 @@ def str2timestamp(s: str, fmt: str = DEFAULT_FMT) -> float:
     return time.mktime(time.strptime(s, fmt))
 
 
-def get_nday_list(n: int) -> List[str]:
+def get_nday_list(n: int) -> list[str]:
     """获取过去 n 天的日期列表（不含今天，升序，ISO 格式 'YYYY-MM-DD'）。
 
     Args:

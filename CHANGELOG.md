@@ -12,6 +12,7 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 - `docs/architecture.md`, `docs/usage.md`, this changelog
 
 ### Changed
+- **Python floor raised to >= 3.10**; typing modernized package-wide (`Optional[X]` → `X | None`, `List[X]` → `list[X]`, collections.abc imports); 3.7 importlib_metadata fallback removed; CI matrix now 3.10–3.13; ruff target py310 with UP rules enabled
 - Unified logger fallback in a single internal module (`_internal.py`)
 - `xThreadPoolExecutor`/`xProcessPoolExecutor` share one implementation
 - `xsse_parser` logs JSON decode errors through the package logger instead of raw `print`

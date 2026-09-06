@@ -19,7 +19,7 @@ lautpy/
 │   ├── agent/                  # Agent 构建层（双轨引擎 + 统一工具定义）
 │   │   ├── __init__.py         # run_agent（原生循环）/ build_agent（langchain）
 │   │   ├── tools.py            # @tool：普通函数 → OpenAI schema / langchain 工具
-│   │   ├── mini.py             # 原生 tool-calling 循环（零 langchain 依赖，3.8+）
+│   │   ├── mini.py             # 原生 tool-calling 循环（零 langchain 依赖）
 │   │   └── langchain_agent.py  # langchain 1.x create_agent 包装（3.10+）
 │   └── apis/                   # 第三方 HTTP API 封装层
 │       ├── client.py           # 基建：get_api_key（环境变量密钥）+ request（超时/重试）
@@ -29,7 +29,7 @@ lautpy/
 ├── docs/                       # 本文档 + 使用指南
 ├── .data/VERSION               # 唯一版本源（pyproject 动态读取）
 ├── .github/workflows/
-│   ├── test.yml                # CI：3.8–3.13 矩阵测试 + ruff lint
+│   ├── test.yml                # CI：3.10–3.13 矩阵测试 + ruff lint
 │   └── publish.yml             # tag 触发 → PyPI（trusted publishing）
 └── pyproject.toml              # PEP 639 元数据 + extras + ruff/pytest 配置
 ```
@@ -77,7 +77,7 @@ class Pipe:
 1. **版本号唯一来源是 `.data/VERSION`**——pyproject 里 `dynamic = ["version"]`，setuptools 构建时自动读取，不存在第二处需要同步的版本号
 2. 发版：`./release.sh <版本>` → 提交版本文件 → 打 `v*` tag → `publish.yml` 自动构建并经 trusted publishing 发布到 PyPI
 3. **发版前必须经仓库所有者确认**（流程约定）
-4. CI（`test.yml`）在每次 push/PR 时跑 3.8–3.13 全矩阵测试 + ruff
+4. CI（`test.yml`）在每次 push/PR 时跑 3.10–3.13 全矩阵测试 + ruff
 
 ## 六、测试约定
 
