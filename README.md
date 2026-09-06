@@ -31,7 +31,7 @@ with timer('LOG'):
 | 类型转换 | `xtuple` `xlist` `xset` `xarray` |
 | 高阶函数 | `xmap` `xmap_` `xfilter` `xfilter_` `xenumerate` `xchain` `xchain_` `xreduce` `xdrop` `xdrop_` |
 | 字典 | `xchain_dict` `xDictValues` `xDictRemove` `xgetitem` `xitemgetter` |
-| 分组/去重 | `xgroup` `xUnique` `xsort` `xCounter` `xCounterUpdate` |
+| 分组/去重 | `xgroup` `xUnique` `xUniquePlus` `xHashBins` `xsort` `xCounter` `xCounterUpdate` `xBloomFilter` |
 | 并发 | `xJobs` `xThreadPoolExecutor` `xProcessPoolExecutor` `xAsyncio` |
 | 字符串 | `xjoin` `xstartswith` `xendswith` `xsse_parser` |
 
@@ -49,11 +49,30 @@ dates.get_nday_list(7)                           # 过去 7 天
 hashing.md5("key:value")
 hashing.murmurhash(bins=100)                     # 与 Java Guava 口径一致
 hashing.ABTest(expid='10001', ranger=(0, 99)).is_hit("userid")
+hashing.hash_bins(values, bins=4)                # 稳定哈希分桶
+hashing.BloomFilter(capacity=10**6)              # 纯标准库布隆过滤器
 
 # 路径 / 配置（yaml 支持需 pyyaml）
 paths.file2json("config.yaml")                   # json/yaml -> dict
 paths.path2list("dir", "*.txt")                  # 文件/目录展开
 ```
+
+## API 封装（`lautpy.apis`）
+
+密钥一律走环境变量，源码中零硬编码；HTTP 统一带超时与自动重试：
+
+```python
+import os
+from lautpy.apis import get_api_key, request
+from lautpy.apis.tools import shorten_url, data2qrcodeurl
+from lautpy.apis.niutrans import translate
+
+os.environ["NIUTRANS_API_KEY"] = "..."   # 或在 shell / .env 中配置
+translate("你好", "auto", "en")           # NiuTrans 翻译
+shorten_url("https://example.com/...")   # 无需密钥的短链/二维码工具
+```
+
+> 关于从 meutils 移植 `apis/*` 的取舍：meutils 有 325 个 API 封装文件，但其中大部分并非独立函数——它们依赖原作者的私人基建（飞书表格里的 key 池、其个人的阿里云 OSS、one-api 网关）以及 meutils 内部的 schemas/llm/oss/caches 全套依赖，还有 75 个文件内嵌明文密钥。这些代码即使改成环境变量也无法脱离原体系验证，因此**没有全量移植**。本包只移植了可独立运行的部分，并提供了规范化的接入模式（`get_api_key()` + `request()`）。需要接入新 API 时照此模式添加即可。
 
 ## 设计约定
 

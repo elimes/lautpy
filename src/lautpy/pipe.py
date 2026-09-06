@@ -92,7 +92,8 @@ __all__ = [
     "xjoin", "xitemgetter", "xstartswith", "xendswith",
     "xchain_dict", "xDictValues", "xDictRemove", "xgetitem",
     # 统计
-    "xCounter", "xCounterUpdate", "xUnique",
+    "xCounter", "xCounterUpdate", "xUnique", "xUniquePlus", "xBloomFilter",
+    "xHashBins",
     # 并发
     "xThreadPoolExecutor", "xProcessPoolExecutor", "xAsyncio",
     # 调试与输出
@@ -259,6 +260,53 @@ def xUnique(iterable, keep_order: bool = True):
         return list(OrderedDict.fromkeys(iterable))
     else:
         return list(set(iterable))
+
+
+@Pipe
+def xUniquePlus(iterable, key_fn: Optional[Callable] = None):
+    """Dedup arbitrary objects (incl. unhashable ones), keeping first occurrence.
+
+    Unlike meutils' xUnique_plus this needs no joblib: hashable keys use hash(),
+    others fall back to a pickle digest (note: dict key order matters).
+    """
+    import pickle
+
+    seen = {}
+    for element in iterable:
+        key = key_fn(element) if key_fn else element
+        try:
+            hash(key)
+        except TypeError:
+            key = pickle.dumps(key, protocol=4)
+        if key not in seen:
+            seen[key] = element
+    return list(seen.values())
+
+
+@Pipe
+def xBloomFilter(iterable, capacity: int = 1_000_000, error_rate: float = 0.01):
+    """Build a BloomFilter (see lautpy.hashing) from an iterable of members.
+
+    Replaces meutils' xBloomFilter backed by pybloom_live with a stdlib-only
+    implementation. Usage::
+
+        bloom = [i for i in range(100)] | xBloomFilter(capacity=1000)
+        42 in bloom  # True
+    """
+    from lautpy.hashing import BloomFilter
+
+    bloom = BloomFilter(capacity=capacity, error_rate=error_rate)
+    for item in iterable:
+        bloom.add(item)
+    return bloom
+
+
+@Pipe
+def xHashBins(values: Iterable, bins: int = 3):
+    """Group values into `bins` stable hash buckets (requires scikit-learn)."""
+    from lautpy.hashing import hash_bins
+
+    return hash_bins(values, bins=bins)
 
 
 # === Pandas 支持 ===
