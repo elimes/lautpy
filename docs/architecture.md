@@ -16,6 +16,11 @@ lautpy/
 │   ├── decorators.py           # retrying / timeout / background_task / ratelimit / ...
 │   ├── notice.py               # 企微/飞书群机器人通知（webhook 走环境变量）
 │   ├── llm.py                  # OpenAI 兼容客户端工厂（openai 可选）
+│   ├── agent/                  # Agent 构建层（双轨引擎 + 统一工具定义）
+│   │   ├── __init__.py         # run_agent（原生循环）/ build_agent（langchain）
+│   │   ├── tools.py            # @tool：普通函数 → OpenAI schema / langchain 工具
+│   │   ├── mini.py             # 原生 tool-calling 循环（零 langchain 依赖，3.8+）
+│   │   └── langchain_agent.py  # langchain 1.x create_agent 包装（3.10+）
 │   └── apis/                   # 第三方 HTTP API 封装层
 │       ├── client.py           # 基建：get_api_key（环境变量密钥）+ request（超时/重试）
 │       ├── tools.py            # 无密钥工具：shorten_url / data2qrcodeurl / download / is_open
@@ -38,6 +43,9 @@ pipe (核心，仅标准库 + 可选 numpy/pandas/joblib/sklearn/tqdm)
    ↑                  ↑
 dates paths hashing decorators（tenacity 可选） notice ──→ apis.client ──→ requests
                                                     llm ──→ openai（可选）
+                                                     ↑
+                                     agent（tools 无依赖；mini 走 llm；
+                                     langchain_agent 走 langchain 1.x，3.10+ 可选）
 ```
 
 - **只有 `requests` 是硬依赖**；其余第三方库全部 try/except 可选化

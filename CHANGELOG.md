@@ -4,6 +4,13 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 
 ## [Unreleased]
 
+### Added
+- `lautpy.agent`: agent building layer with dual engines — native OpenAI
+  tool-calling loop (`run_agent`, no langchain needed, Python 3.8+) and
+  LangChain 1.x `create_agent` wrapper (`build_agent`, Python 3.10+, via the
+  new `agent` extra); one `@tool` definition feeds both engines
+- `docs/architecture.md`, `docs/usage.md`, this changelog
+
 ### Changed
 - Unified logger fallback in a single internal module (`_internal.py`)
 - `xThreadPoolExecutor`/`xProcessPoolExecutor` share one implementation
@@ -12,9 +19,6 @@ All notable changes to lautpy are documented here. Versions follow the semver-is
 - Version number is now sourced solely from `.data/VERSION` (setuptools dynamic version); `release.sh` no longer patches pyproject.toml
 - Added CI test workflow (Python 3.8–3.13 matrix + ruff) alongside the publish workflow
 - Docstring pass across all modules: unified Google-style Args/Returns/Example (Chinese), accurate `__doc__` on plain Pipe instances, stale template headers removed; ruff configured and clean
-
-### Added
-- `docs/architecture.md`, `docs/usage.md`, this changelog
 
 ## [0.0.6.0] — metadata release
 

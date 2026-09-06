@@ -172,7 +172,59 @@ resp = client.chat.completions.create(
 )
 ```
 
-## 8. Web/API 工具 `lautpy.apis`
+## 8. Agent 构建 `lautpy.agent`
+
+双轨设计：**原生引擎**只用 OpenAI 兼容 API（`pip install "lautpy[llm]"`，Python 3.8+）；
+**LangChain 引擎**包装 langchain 1.x `create_agent`（`pip install "lautpy[agent]"`，Python 3.10+）。
+两侧共用同一套工具定义。
+
+```bash
+# 环境变量约定（以 moonshot 为例）
+export MOONSHOT_API_KEY="sk-..."
+export MOONSHOT_MODEL="moonshot-v1-8k"
+# export MOONSHOT_BASE_URL="https://api.moonshot.cn/v1"
+```
+
+**第一步：定义工具**（普通函数 + 类型标注 + docstring，docstring 即工具描述，必填）
+
+```python
+from lautpy.agent import tool
+
+@tool
+def get_weather(city: str, days: int = 1) -> str:
+    '''查询指定城市未来几天的天气。'''
+    return f"{city}: 晴 25°C"
+```
+
+**第二步（原生引擎）**：直接跑 agent 循环
+
+```python
+from lautpy.agent import run_agent
+
+answer = run_agent(
+    "北京明天适合爬山吗？",
+    tools=[get_weather],
+    service="moonshot",
+    system="你是户外助手，回答简洁。",
+)
+```
+
+**第二步（LangChain 引擎）**：需要中间件/结构化输出等高级能力时
+
+```python
+from lautpy.agent import build_agent, chat
+
+agent = build_agent([get_weather], service="moonshot",
+                    system_prompt="你是户外助手。")
+chat(agent, "北京明天适合爬山吗？")     # 便捷单轮封装
+# 也可以直接用 langgraph 原生 API：agent.invoke({"messages": [...]})
+```
+
+**循环保守**：run_agent 内部是标准的 OpenAI function-calling 轮转
+（模型请求工具 → 执行并回填 → 直到给出最终回答），工具抛错会把错误
+信息回传给模型自行调整，而不是中断；`max_turns` 防死循环。
+
+## 9. Web/API 工具 `lautpy.apis`
 
 ```python
 from lautpy.apis import get_api_key, request, MissingAPIKeyError
